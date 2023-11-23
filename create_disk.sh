@@ -1,6 +1,6 @@
 #!/bin/bash
+set -euxo pipefail
 # Author: Vojtech Aschenbrenner <asch@cs.wisc.edu>
 
-truncate -s 0M disk
-set -euxo pipefail
+rm -f disk
 truncate -s 1M disk

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Author: Vojtech Aschenbrenner <asch@cs.wisc.edu>
+set -euxo pipefail
+
+fusermount -u "$@"

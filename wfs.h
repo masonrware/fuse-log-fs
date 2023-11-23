@@ -1,5 +1,3 @@
-// Author: Vojtech Aschenbrenner <asch@cs.wisc.edu>
-
 #include <stddef.h>
 #include <stdint.h>
 

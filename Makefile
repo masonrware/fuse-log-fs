@@ -1,5 +1,3 @@
-# Author: Vojtech Aschenbrenner <asch@cs.wisc.edu>
-
 NAME = mount.wfs mkfs.wfs fsck.wfs
 
 CC = gcc

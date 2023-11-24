@@ -139,7 +139,7 @@ Your filesystem needs to implement the following features:
 - Read an existing file\
   Note that the `offset` for this operation may not be 0. 
 - Read a directory
-- Remove an existing file or directory (can be empty or nonempty)
+- Remove an existing file
 - Get attributes of an existing file/directory\
   Fill the following fields of struct stat
   - st_uid

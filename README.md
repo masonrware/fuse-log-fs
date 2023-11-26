@@ -148,6 +148,7 @@ Your filesystem needs to implement the following features:
   - st_atime
   - st_mtime
   - st_mode
+  - st_nlink
   - st_size
 
 Therefore, you need to fill the following fields of `struct fuse_operations`: 

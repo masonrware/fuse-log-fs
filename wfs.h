@@ -18,9 +18,12 @@ struct wfs_inode {
     unsigned int mode;          // type. S_IFDIR or S_IFREG
     unsigned int uid;           // user id
     unsigned int gid;           // group id
+    unsigned int flags;         // flags
     unsigned int size;          // size in bytes
     unsigned int atime;         // last access time
     unsigned int mtime;         // last modify time
+    unsigned int ctime;         // inode change time
+    unsigned int links;         // links
 };
 
 struct wfs_dentry {

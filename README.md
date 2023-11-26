@@ -48,6 +48,7 @@ To use FUSE in a C-based filesystem, you typically define callback functions for
 Here's an example demonstrating how to register a getattr function in a basic FUSE-based filesystem:
 
 ```c
+#define FUSE_USE_VERSION 30
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,6 +1,6 @@
 # Administrivia
 
-[- NEW INSTRUCTIONS: A `prebuilt_disk` has been added which contains a working log file system with several files and subdirectories. -]
+[- NEW INSTRUCTIONS: -] A `prebuilt_disk` has been added which contains a working log file system with several files and subdirectories. [- END NEW INSTRUCTIONS -]
 
 - **Due date**: December 8th, 2023 at 11:59pm.
 - **Handing it in**: 

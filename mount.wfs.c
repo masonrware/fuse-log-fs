@@ -8,6 +8,8 @@
 #include <errno.h>
 #include "wfs.h"
 
+char* base;
+
 void initialize_filesystem(const char *disk_path) {
     int fd;
 

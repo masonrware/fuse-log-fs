@@ -51,7 +51,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 
     return res;
 }
-
+//
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     int fd;

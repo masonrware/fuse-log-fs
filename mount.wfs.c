@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <dirent.h>
 
 // static const char *wfs_path = "/";  // Mount point
 

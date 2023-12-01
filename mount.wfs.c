@@ -133,5 +133,9 @@ int main(int argc, char *argv[]) {
     // You need to pass [FUSE options] along with the mount_point to fuse_main as argv. 
     // You may assume -s is always passed to mount.wfs as a FUSE option to disable multi-threading.
     
+    argv[argc-2] = argv[argc-1];
+    argv[argc-1] = NULL;
+    argc -= 1;
+
     return fuse_main(argc, argv, &my_operations, NULL);
 }

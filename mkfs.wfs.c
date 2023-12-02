@@ -32,6 +32,29 @@ void initialize_filesystem(const char *disk_path) {
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
 
+    // initialize the superblock
+    // TODO pointer to superblock pointer -- have it point to base??
+    // TODO we will be using memcpy somewhere??
+
+    struct wfs_sb superblock = {
+        .magic = WFS_MAGIC,
+        .head = 0
+    };
+
+    // Initialize the root directory log entry
+    struct wfs_inode root_inode = {
+        .inode_number = 0,
+        // TODO ... other fields ...
+    };
+
+    struct wfs_log_entry root_log_entry = {
+        .inode = root_inode,
+    };
+
+    // TODO PUT THE SUPERBLOCK AND THE ROOT LOG ENTRY ON THE LOG (AFTER BASE) TO CALL MUNMAP WITH 
+
+    // TODO call munmap to write to disk
+
     close(fd);
     printf("Filesystem initialized successfully.\n");
 }

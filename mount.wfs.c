@@ -17,6 +17,9 @@
 static char* disk_path;
 static char* mount_point;
 
+char* base;
+char* head;
+
 struct wfs_inode root_inode;
 struct wfs_log_entry root_log_entry;
 
@@ -223,7 +226,24 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                fd, 0);
 
+    // Check for errors in mmap
+    if (base == MAP_FAILED) {
+        // TODO Handle error
+    }
+
+    // Cast superblock
+    struct wfs_sb* superblock = (struct wfs_sb*)base;
+
+    // Check magic number
+    if (superblock->magic != WFS_MAGIC){
+        return -1;
+    }
+
+    // Store head global
+    head = superblock->head;
 
     // Parse disk_path and mount_point from the command line arguments
     disk_path = argv[argc - 2];

@@ -139,10 +139,10 @@ int getDirNum(char* path){
                     break;
                 }
             }
-            if (dirNum < 0){
-                printf("Directory not found\n");
-                return 0;
-            }
+            // if (dirNum < 0){
+            //     printf("Directory not found\n");
+            //     return 0;
+            // }
         }
     }
 }

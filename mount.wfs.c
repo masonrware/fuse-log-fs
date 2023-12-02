@@ -8,6 +8,7 @@
 
 #include <fcntl.h>
 #include <dirent.h>
+#include <ctype.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -16,6 +17,10 @@
 
 static char* disk_path;
 static char* mount_point;
+
+char* head;
+char* base;
+struct wfs_sb* superblock;
 
 struct wfs_inode root_inode;
 struct wfs_log_entry root_log_entry;
@@ -30,7 +35,7 @@ static void get_full_path(const char *path, char *full_path) {
 static struct wfs_log_entry get_log_entry(const char *path, int inode_number) {
     char* curr;
     // iterate past the superblock
-    base += sizeof(struct wfs_sb);
+    base += sizeof(struct wfs_sb); // don't edit base
     while(curr != head) {
         struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
         // if the thing is not deleted
@@ -45,7 +50,120 @@ static struct wfs_log_entry get_log_entry(const char *path, int inode_number) {
     }
 }
 
-// TODO maybe create a helper to get a log entry?
+// Get filename from a path
+const char *getFileName(const char *path) {
+    const char *filename = strrchr(path, '/');
+    
+    if (filename != NULL) {
+        // Move to the next character after the last '/'
+        filename++;
+    } else {
+        // No '/' found, use the entire path as the filename
+        filename = "";
+    }
+    
+    return filename;
+}
+
+// Check if filename contains valid characters
+int isValidFilename(const char *filename) {
+    while (*filename != '\0') {
+        if (!(isalnum(*filename) || *filename == '_')) {
+            // If the character is not alphanumeric or underscore, the filename is invalid
+            return 0;
+        }
+        filename++;
+    }
+
+    // All characters in the filename are valid
+    return 1;
+}
+
+
+
+// Remove root and filename from a path
+char* snip(const char* path) {
+    const char* root = "/root/";
+    const char* filename = getFileName(path);
+
+    // Check if the path starts with "/root/" and ends with "/filename"
+    if (strncmp(path, root, strlen(root)) == 0 && strcmp(path + strlen(path) - strlen(filename), filename) == 0) {
+        // Calculate the length of the middle part
+        size_t middleLen = strlen(path) - strlen(root) - strlen(filename);
+
+        // Allocate memory for the middle part
+        char* middlePath = (char*)malloc((middleLen + 1) * sizeof(char));
+
+        // Copy the middle part into the new string
+        strncpy(middlePath, path + strlen(root), middleLen);
+
+        // Null-terminate the new string
+        middlePath[middleLen] = '\0';
+
+        return middlePath;
+    } else {
+        // If the path does not match the expected format, return NULL or handle it as needed
+        return NULL;
+    }
+}
+
+// Get inode number of a directory
+int getDirNum(char* path){
+    char* dir = getFileName(snip(path));
+
+    int dirNum = -1;
+    char* cur = head; // only update superblock head or else this breaks
+
+    // iterate until end of data
+    while ((int) cur != superblock->head){
+        struct wfs_log_entry log = (struct wfs_log_entry) cur; // does this need to be a ptr?
+
+        // Check if entry is deleted
+        if (log.inode.deleted){
+            cur += sizeof(log);
+            continue;
+        }
+        // Check if entry is a directory
+        else if (log.inode.mode != S_IFDIR){
+            cur += sizeof(log);
+            continue;
+        }
+        // Entry is a directory, search through dentries for dir
+        else {
+            for (char* d = log.data; (int) d < (int)(log.data + sizeof(log.data)); d += sizeof(struct wfs_dentry)){
+                struct wfs_dentry dentry = (struct wfs_dentry) d;
+
+                // dentry matches desired directory name
+                if (strcmp(dir, dentry.name) == 0){
+                    dirNum = dentry.inode_number;
+                    break;
+                }
+            }
+            if (dirNum < 0){
+                printf("Directory not found\n");
+                return 0;
+            }
+        }
+    }
+}
+
+// Validity check for file creation
+// take in path including new filename
+int canCreate(char *path){
+    char* fname = getFileName(path);
+    char* dir = getFileName(snip(path));
+
+    // Check return val from getFileName
+    if (strcmp(fname, "") == 0){
+        printf("Empty filename\n");
+    }
+
+    // Check filename
+    if (!isValidFilename(fname)) return 0;
+
+    // Check if filename is unique in directory
+    
+}
 
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf) {
@@ -237,7 +355,24 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                fd, 0);
 
+    // Check for errors in mmap
+    if (base == MAP_FAILED) {
+        // TODO Handle error
+    }
+
+    // Cast superblock
+    superblock = (struct wfs_sb*)base;
+
+    // Check magic number
+    if (superblock->magic != WFS_MAGIC){
+        return -1;
+    }
+
+    // Store head global
+    head = superblock->head;
 
     // Parse disk_path and mount_point from the command line arguments
     disk_path = argv[argc - 2];

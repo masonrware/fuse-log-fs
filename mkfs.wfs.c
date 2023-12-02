@@ -39,13 +39,11 @@ void initialize_filesystem(const char *disk_path) {
     struct wfs_sb* superblock = (struct wfs_sb*)base;
 
     superblock->magic = WFS_MAGIC;
-    superblock->head = (base + sizeof(struct wfs_sb));
+    superblock->head = sizeof(struct wfs_sb);
 
     // Initialize the root directory log entry
     struct wfs_inode root_inode = {
         .inode_number = 0,
-        .deleted = 0,
-        .mode = S_IFDIR,
         // TODO Other fields ...
     };
 

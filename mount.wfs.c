@@ -17,9 +17,6 @@
 static char* disk_path;
 static char* mount_point;
 
-char* base;
-char* head;
-
 struct wfs_inode root_inode;
 struct wfs_log_entry root_log_entry;
 
@@ -30,8 +27,22 @@ static void get_full_path(const char *path, char *full_path) {
     strcat(full_path, path);
 }
 
-static struct wfs_inode get_inode() {
+static struct wfs_log_entry get_log_entry(const char *path, int inode_number) {
+    char* curr;
+    // iterate past the superblock
+    base += sizeof(struct wfs_sb);
+    while(curr != head) {
+        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
+        // if the thing is not deleted
+        if (curr_log_entry->inode.deleted != 1) {
+            // we found the log entry of the inode we need
+            if (curr_log_entry->inode.inode_number == inode_number) {
 
+            }
+        }
+        // we design the inode's size to be updated with size of data member of log entry struct
+        curr += curr_log_entry->inode.size;
+    }
 }
 
 // TODO maybe create a helper to get a log entry?
@@ -226,24 +237,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                fd, 0);
 
-    // Check for errors in mmap
-    if (base == MAP_FAILED) {
-        // TODO Handle error
-    }
-
-    // Cast superblock
-    struct wfs_sb* superblock = (struct wfs_sb*)base;
-
-    // Check magic number
-    if (superblock->magic != WFS_MAGIC){
-        return -1;
-    }
-
-    // Store head global
-    head = superblock->head;
 
     // Parse disk_path and mount_point from the command line arguments
     disk_path = argv[argc - 2];

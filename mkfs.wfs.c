@@ -32,7 +32,7 @@ void initialize_filesystem(const char *disk_path) {
 
     // Check for errors in mmap
     if (base == MAP_FAILED) {
-        // TODO Handle error
+        return -1;
     }
 
     // initialize the superblock
@@ -44,7 +44,16 @@ void initialize_filesystem(const char *disk_path) {
     // Initialize the root directory log entry
     struct wfs_inode root_inode = {
         .inode_number = 0,
-        // TODO Other fields ...
+        .deleted = 0,
+        .mode = S_IFDIR,        // Set to S_IFDIR for a directory
+        .uid = getuid(),        // Set to the user id of the process
+        .gid = getgid(),        // Set to the group id of the process
+        .flags = 0,             // You can set flags based on your requirements
+        .size = 4096,           // Set to an appropriate size for a directory (e.g., 4 KB)
+        .atime = time(NULL),    // Set to the current time
+        .mtime = time(NULL),    // Set to the current time
+        .ctime = time(NULL),    // Set to the current time
+        .links = 2,             // Number of hard links (including "." and "..")
     };
 
     struct wfs_log_entry root_log_entry = {
@@ -54,7 +63,7 @@ void initialize_filesystem(const char *disk_path) {
     size_t root_log_entry_size = sizeof(struct wfs_log_entry);
 
     // Place the root log entry at the head address
-    memcpy(base + superblock->head, &root_log_entry, root_log_entry_size);
+    memcpy(superblock->head, &root_log_entry, root_log_entry_size);
 
     // Update the head to be after the added root log entry
     superblock->head += root_log_entry_size;

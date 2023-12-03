@@ -296,23 +296,54 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     inode.links = 1;
 
     // Create a dentry
-    struct wfs_dentry* new_dentry = (struct wfs_dentry*) malloc(sizeof(struct wfs_dentry));
-    new_dentry->name = get_filename(path);
-    new_dentry->inode_number = inode.inode_number;
+    struct wfs_dentry* new_dentry = (struct wfs_dentry*)malloc(sizeof(struct wfs_dentry));
+    if (new_dentry != NULL) {
+        // Copy the filename to the new_dentry->name using a function like strncpy
+        strncpy(new_dentry->name, get_filename(path), MAX_FILE_NAME_LEN - 1);
+        new_dentry->name[MAX_FILE_NAME_LEN - 1] = '\0';  // Ensure null-termination
+        new_dentry->inode_number = inode.inode_number;
+    } else {
+        // Handle allocation failure
+    }
 
     // Get parent directory log entry
     struct wfs_entry* old_log_entry = get_log_entry(path, 0);
 
-    // TODO mark old log entry as deleted
-    // TODO make copy of old log entry and add it to log at head
-    // TODO write dentry to new log entry's data
-    // TODO update new log entry's inode's size
+    // TODO fix below
+    
+    // Mark old log entry as deleted
+    old_log_entry->inode.deleted = 1;
+
+    // Make copy of old log entry and add it to log at head
+    struct wfs_entry* new_log_entry = (struct wfs_entry*)malloc(sizeof(struct wfs_entry));
+    if (new_log_entry != NULL) {
+        memcpy(new_log_entry, old_log_entry, sizeof(struct wfs_entry));
+        new_log_entry->next = head;  // Assuming 'head' is a pointer to the current head of the log
+        head = new_log_entry;
+    } else {
+        // Handle allocation failure
+    }
+
+    // Write dentry to new log entry's data
+    size_t data_size = sizeof(struct wfs_dentry);
+    new_log_entry = (struct wfs_entry*)realloc(new_log_entry, sizeof(struct wfs_entry) + data_size);
+    if (new_log_entry != NULL) {
+        struct wfs_dentry* new_entry_dentry = (struct wfs_dentry*)(new_log_entry->data);
+        memcpy(new_entry_dentry, new_dentry, sizeof(struct wfs_dentry));
+        new_log_entry->inode.size += data_size;
+    } else {
+        // Handle reallocation failure
+    }
+
+    // Update new log entry's inode's size
+    // TODO not sure about this -- inode should also have size of inode?
+    new_log_entry->inode.size += sizeof(struct wfs_dentry);
+
     // TODO update head
 
     return 0;
 }
 
-// TODO -- create dentry? log entry?? update head of superblock...
 // Function to create a directory
 static int wfs_mkdir(const char *path, mode_t mode) {
     char full_path[PATH_MAX];

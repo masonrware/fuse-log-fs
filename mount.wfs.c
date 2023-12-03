@@ -114,49 +114,47 @@ char* isolate_path(const char* path) {
 }
 
 // Get the log entry of the direct parent dir
-// static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
-//     // struct wfs_log_entry* target = NULL;
+static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
+    char* curr = (char *)malloc(strlen(base) + 1);
+    strcpy(curr, base);
 
-//     char* curr = (char *)malloc(strlen(base) + 1);
-//     strcpy(curr, base);
-
-//     // iterate past the superblock
-//     curr += sizeof(struct wfs_sb); // skip past superblock
-//     while(curr != head) {
-//         struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
-//         // if the thing is not deleted
-//         if (curr_log_entry->inode.deleted != 1) {
-//             // we found the log entry of the inode we need
-//             if (curr_log_entry->inode.inode_number == inode_number) {
-//                 // base case -- either "" or "/"
-//                 if(strlen(path) == 0 || strlen(path) == 1) {
-//                     return curr_log_entry;
-//                 } else {
-//                     char path_copy[100];  // Adjust the size according to your needs
-//                     strcpy(path_copy, path);
+    // iterate past the superblock
+    curr += sizeof(struct wfs_sb); // skip past superblock
+    while(curr != head) {
+        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
+        // if the thing is not deleted
+        if (curr_log_entry->inode.deleted != 1) {
+            // we found the log entry of the inode we need
+            if (curr_log_entry->inode.inode_number == inode_number) {
+                // base case -- either "" or "/"
+                if(strlen(path) == 0 || strlen(path) == 1) {
+                    return curr_log_entry;
+                } else {
+                    char path_copy[100];  // Adjust the size according to your needs
+                    strcpy(path_copy, path);
                     
-//                     // Use strtok to get the first token
-//                     char* ancestor = strtok(path_copy, "/");
+                    // Use strtok to get the first token
+                    char* ancestor = strtok(path_copy, "/");
 
-//                     char* data_addr = curr_log_entry->data;
+                    char* data_addr = curr_log_entry->data;
 
-//                     // iterate over all dentries
-//                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
-//                         // if the subdir is the current highest ancestor of our target
-//                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
-//                             // TODO what to do here to propagate return???
-//                             struct wfs_log_entry* target = get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
-//                         }
-//                         data_addr += sizeof(struct wfs_dentry);
-//                     }
-//                 }
-//             }
-//         }
-//         // we design the inode's size to be updated with size of data member of log entry struct
-//         curr += curr_log_entry->inode.size;
-//     }
-//     // return target;
-// }
+                    // iterate over all dentries
+                    while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
+                        // if the subdir is the current highest ancestor of our target
+                        if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
+                            return get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
+                        }
+                        data_addr += sizeof(struct wfs_dentry);
+                    }
+                }
+            }
+        }
+        // we design the inode's size to be updated with size of data member of log entry struct
+        curr += curr_log_entry->inode.size;
+    }
+
+    return NULL;
+}
 
 // Get filename from a path
 char* get_filename(const char* path) {
@@ -222,8 +220,7 @@ int canCreate(char *path){
     if (!isValidFilename(fname)) return 0;
 
     // Check if filename is unique in directory
-    printf("%s\n", dir); // just to get rid of unused warning
-    return 0;
+    
 }
 
 
@@ -420,27 +417,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Parse disk_path and mount_point from the command line arguments
-    disk_path = argv[argc - 2];
-    mount_point = argv[argc - 1];
-
-    int fd;
-
-    // Open file descriptor for file to init system with
-    fd = open(disk_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    if (fd == -1) {
-        perror("Error opening file");
-        exit(EXIT_FAILURE);
-    }
-
-    // Get file info (for file size)
-    struct stat file_stat;
-    if (fstat(fd, &file_stat) == -1) {
-        perror("fstat");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-
     // TODO FIX THIS
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
@@ -448,7 +424,6 @@ int main(int argc, char *argv[]) {
     // Check for errors in mmap
     if (base == MAP_FAILED) {
         // TODO Handle error
-        return -1;
     }
 
     // Cast superblock
@@ -461,6 +436,10 @@ int main(int argc, char *argv[]) {
 
     // Store head global
     head = (char*) &superblock->head;
+
+    // Parse disk_path and mount_point from the command line arguments
+    disk_path = argv[argc - 2];
+    mount_point = argv[argc - 1];
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     int fuse_argc = argc - 2;  // Adjust argc for FUSE options

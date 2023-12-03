@@ -114,49 +114,49 @@ char* isolate_path(const char* path) {
 }
 
 // Get the log entry of the direct parent dir
-static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
-    // struct wfs_log_entry* target = NULL;
+// static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
+//     // struct wfs_log_entry* target = NULL;
 
-    char* curr = (char *)malloc(strlen(base) + 1);
-    strcpy(curr, base);
+//     char* curr = (char *)malloc(strlen(base) + 1);
+//     strcpy(curr, base);
 
-    // iterate past the superblock
-    curr += sizeof(struct wfs_sb); // skip past superblock
-    while(curr != head) {
-        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
-        // if the thing is not deleted
-        if (curr_log_entry->inode.deleted != 1) {
-            // we found the log entry of the inode we need
-            if (curr_log_entry->inode.inode_number == inode_number) {
-                // base case -- either "" or "/"
-                if(strlen(path) == 0 || strlen(path) == 1) {
-                    return curr_log_entry;
-                } else {
-                    char path_copy[100];  // Adjust the size according to your needs
-                    strcpy(path_copy, path);
+//     // iterate past the superblock
+//     curr += sizeof(struct wfs_sb); // skip past superblock
+//     while(curr != head) {
+//         struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
+//         // if the thing is not deleted
+//         if (curr_log_entry->inode.deleted != 1) {
+//             // we found the log entry of the inode we need
+//             if (curr_log_entry->inode.inode_number == inode_number) {
+//                 // base case -- either "" or "/"
+//                 if(strlen(path) == 0 || strlen(path) == 1) {
+//                     return curr_log_entry;
+//                 } else {
+//                     char path_copy[100];  // Adjust the size according to your needs
+//                     strcpy(path_copy, path);
                     
-                    // Use strtok to get the first token
-                    char* ancestor = strtok(path_copy, "/");
+//                     // Use strtok to get the first token
+//                     char* ancestor = strtok(path_copy, "/");
 
-                    char* data_addr = curr_log_entry->data;
+//                     char* data_addr = curr_log_entry->data;
 
-                    // iterate over all dentries
-                    while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
-                        // if the subdir is the current highest ancestor of our target
-                        if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
-                            // TODO what to do here to propagate return???
-                            struct wfs_log_entry* target = get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
-                        }
-                        data_addr += sizeof(struct wfs_dentry);
-                    }
-                }
-            }
-        }
-        // we design the inode's size to be updated with size of data member of log entry struct
-        curr += curr_log_entry->inode.size;
-    }
-    // return target;
-}
+//                     // iterate over all dentries
+//                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
+//                         // if the subdir is the current highest ancestor of our target
+//                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
+//                             // TODO what to do here to propagate return???
+//                             struct wfs_log_entry* target = get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
+//                         }
+//                         data_addr += sizeof(struct wfs_dentry);
+//                     }
+//                 }
+//             }
+//         }
+//         // we design the inode's size to be updated with size of data member of log entry struct
+//         curr += curr_log_entry->inode.size;
+//     }
+//     // return target;
+// }
 
 // Get filename from a path
 char* get_filename(const char* path) {

@@ -222,7 +222,7 @@ int canCreate(char *path){
     if (!isValidFilename(fname)) return 0;
 
     // Check if filename is unique in directory
-    
+    printf("%s\n", dir); // just to get rid of unused warning
 }
 
 

@@ -116,7 +116,7 @@ int getDirNum(char* path){
 
     // iterate until end of data
     while ((int) cur != superblock->head){
-        struct wfs_log_entry log = (struct wfs_log_entry) cur; // does this need to be a ptr?
+        struct wfs_log_entry* log = (struct wfs_log_entry*) cur; // does this need to be a ptr?
 
         // Check if entry is deleted
         if (log.inode.deleted){

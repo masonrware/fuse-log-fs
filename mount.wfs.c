@@ -206,6 +206,39 @@ int isValidFilename(const char *filename) {
     return 1;
 }
 
+struct wfs_log_entry* get_directory_entry(const char* path) {
+    char* current_path = strdup(path); // Make a copy of the path to avoid modifying the original
+    char* token = strtok(current_path, "/");
+
+    // set to base + sb
+    // check if struct is a directory
+    struct wfs_log_entry* current_directory = filesystem; // Start from the root
+
+    while (token != NULL) {
+        // Search for the token in the current directory
+        char* current_entry = current_directory->data;
+        while (current_entry < current_directory->data + sizeof(current_directory->data)) {
+            struct wfs_dentry* entry = (struct wfs_dentry*)current_entry;
+
+            if (strcmp(entry->name, token) == 0) {
+                // Found the subdirectory in the current directory
+                current_directory = (struct wfs_log_entry*)(filesystem + entry->inode_number);
+                break;
+            }
+
+            // Move to the next entry
+            current_entry += sizeof(struct wfs_dentry);
+        }
+
+        // Move to the next token in the path
+        token = strtok(NULL, "/");
+    }
+
+    free(current_path); // Free the allocated memory for the copied path
+
+    return current_directory;
+}
+
 // Validity check for file creation
 // take in path including new filename
 // TODO FINISH BELOW
@@ -223,6 +256,7 @@ int canCreate(char *path){
 
     // Check if filename is unique in directory
     printf("%s\n", dir); // just to get rid of unused warning
+    return 0;
 }
 
 

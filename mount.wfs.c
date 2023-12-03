@@ -12,6 +12,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <time.h>
 #include "wfs.h"
 
@@ -32,36 +33,162 @@ static void get_full_path(const char *path, char *full_path) {
     strcat(full_path, path);
 }
 
-static struct wfs_log_entry get_log_entry(const char *path, int inode_number) {
-    char* curr;
+// Remove the top level part of a path
+char* snip_top_level(const char* path) {
+    if (path == NULL || strlen(path) == 0) {
+        // Handle invalid input
+        return NULL;
+    }
+    
+    // Find the first occurrence of '/'
+    const char* first_slash = strchr(path, '/');
+    if (first_slash == NULL) {
+        // No top-level part found, return an empty string or a copy of the input path
+        return strdup("");
+    }
+
+    // Find the second occurrence of '/' starting from the position after the first slash
+    const char* second_slash = strchr(first_slash + 1, '/');
+    if (second_slash == NULL) {
+        // No second slash found, return an empty string or a copy of the input path
+        return strdup("");
+    }
+    
+    // Calculate the length of the remaining path
+    size_t remaining_length = strlen(second_slash);
+
+    // Allocate memory for the remaining path
+    char* remaining_path = (char*)malloc((remaining_length + 1) * sizeof(char));
+    if (remaining_path == NULL) {
+        // Memory allocation failed
+        perror("Memory allocation error");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the remaining path into the new string
+    strcpy(remaining_path, second_slash);
+
+    return remaining_path;
+}
+
+// Remove all pre-mount portion and file extension from a path 
+char* isolate_path(const char* path) {
+    if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0) {
+        // Handle invalid input
+        return NULL;
+    }
+
+    // Find the mount point in the path
+    const char* mount_point_pos = strstr(path, mount_point);
+    if (mount_point_pos == NULL) {
+        // Mount point not found, return a copy of the input path
+        return strdup(path);
+    }
+
+    // Move the pointer after the mount point
+    mount_point_pos += strlen(mount_point);
+
+    // Find the last occurrence of '/'
+    const char* last_slash = strrchr(mount_point_pos, '/');
+    if (last_slash == NULL) {
+        // No '/' found after the mount point, return an empty string
+        return strdup("");
+    }
+
+    // Calculate the length of the remaining path
+    size_t remaining_length = last_slash - mount_point_pos;
+
+    // Allocate memory for the remaining path
+    char* remaining_path = (char*)malloc((remaining_length + 1) * sizeof(char));
+    if (remaining_path == NULL) {
+        // Memory allocation failed
+        perror("Memory allocation error");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the remaining path into the new string
+    strncpy(remaining_path, mount_point_pos, remaining_length);
+    remaining_path[remaining_length] = '\0';
+
+    return remaining_path;
+}
+
+// Get the log entry of the direct parent dir
+static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
+    // struct wfs_log_entry* target = NULL;
+
+    char* curr = (char *)malloc(strlen(base) + 1);
+    strcpy(curr, base);
+
     // iterate past the superblock
-    base += sizeof(struct wfs_sb); // don't edit base
+    curr += sizeof(struct wfs_sb); // skip past superblock
     while(curr != head) {
         struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1) {
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number) {
+                // base case -- either "" or "/"
+                if(strlen(path) == 0 || strlen(path) == 1) {
+                    return curr_log_entry;
+                } else {
+                    char path_copy[100];  // Adjust the size according to your needs
+                    strcpy(path_copy, path);
+                    
+                    // Use strtok to get the first token
+                    char* ancestor = strtok(path_copy, "/");
 
+                    char* data_addr = curr_log_entry->data;
+
+                    // iterate over all dentries
+                    while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
+                        // if the subdir is the current highest ancestor of our target
+                        if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
+                            // TODO what to do here to propagate return???
+                            struct wfs_log_entry* target = get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
+                        }
+                        data_addr += sizeof(struct wfs_dentry);
+                    }
+                }
             }
         }
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
     }
+    // return target;
 }
 
 // Get filename from a path
-const char *getFileName(const char *path) {
-    const char *filename = strrchr(path, '/');
-    
-    if (filename != NULL) {
-        // Move to the next character after the last '/'
-        filename++;
-    } else {
-        // No '/' found, use the entire path as the filename
-        filename = "";
+char* get_filename(const char* path) {
+    if (path == NULL || strlen(path) == 0) {
+        // Handle invalid input
+        return NULL;
     }
-    
+
+    // Find the last occurrence of '/'
+    const char* last_slash = strrchr(path, '/');
+    if (last_slash == NULL) {
+        // No '/' found in the path, return a copy of the input path
+        return strdup(path);
+    }
+
+    // Move the pointer after the last slash
+    last_slash += 1;
+
+    // Calculate the length of the filename
+    size_t filename_length = strlen(last_slash);
+
+    // Allocate memory for the filename
+    char* filename = (char*)malloc((filename_length + 1) * sizeof(char));
+    if (filename == NULL) {
+        // Memory allocation failed
+        perror("Memory allocation error");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the filename into the new string
+    strcpy(filename, last_slash);
+
     return filename;
 }
 
@@ -79,81 +206,14 @@ int isValidFilename(const char *filename) {
     return 1;
 }
 
-
-
-// Remove root and filename from a path
-char* snip(const char* path) {
-    const char* root = "/root/";
-    const char* filename = getFileName(path);
-
-    // Check if the path starts with "/root/" and ends with "/filename"
-    if (strncmp(path, root, strlen(root)) == 0 && strcmp(path + strlen(path) - strlen(filename), filename) == 0) {
-        // Calculate the length of the middle part
-        size_t middleLen = strlen(path) - strlen(root) - strlen(filename);
-
-        // Allocate memory for the middle part
-        char* middlePath = (char*)malloc((middleLen + 1) * sizeof(char));
-
-        // Copy the middle part into the new string
-        strncpy(middlePath, path + strlen(root), middleLen);
-
-        // Null-terminate the new string
-        middlePath[middleLen] = '\0';
-
-        return middlePath;
-    } else {
-        // If the path does not match the expected format, return NULL or handle it as needed
-        return NULL;
-    }
-}
-
-// Get inode number of a directory
-int getDirNum(char* path){
-    char* dir = getFileName(snip(path));
-
-    int dirNum = -1;
-    char* cur = head; // only update superblock head or else this breaks
-
-    // iterate until end of data
-    while ((int) cur != superblock->head){
-        struct wfs_log_entry* log = (struct wfs_log_entry*) cur; // does this need to be a ptr?
-
-        // Check if entry is deleted
-        if (log.inode.deleted){
-            cur += sizeof(log);
-            continue;
-        }
-        // Check if entry is a directory
-        else if (log.inode.mode != S_IFDIR){
-            cur += sizeof(log);
-            continue;
-        }
-        // Entry is a directory, search through dentries for dir
-        else {
-            for (char* d = log.data; (int) d < (int)(log.data + sizeof(log.data)); d += sizeof(struct wfs_dentry)){
-                struct wfs_dentry dentry = (struct wfs_dentry) d;
-
-                // dentry matches desired directory name
-                if (strcmp(dir, dentry.name) == 0){
-                    dirNum = dentry.inode_number;
-                    break;
-                }
-            }
-            // if (dirNum < 0){
-            //     printf("Directory not found\n");
-            //     return 0;
-            // }
-        }
-    }
-}
-
 // Validity check for file creation
 // take in path including new filename
+// TODO FINISH BELOW
 int canCreate(char *path){
-    char* fname = getFileName(path);
-    char* dir = getFileName(snip(path));
+    char* fname = get_filename(path);
+    char* dir = get_filename(isolate_path(path));
 
-    // Check return val from getFileName
+    // Check return val from get_filename
     if (strcmp(fname, "") == 0){
         printf("Empty filename\n");
     }
@@ -164,6 +224,10 @@ int canCreate(char *path){
     // Check if filename is unique in directory
     
 }
+
+
+////// BELOW IS FOR FUSE ///////
+
 
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf) {
@@ -355,6 +419,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // TODO FIX THIS
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
 
@@ -372,7 +437,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Store head global
-    head = superblock->head;
+    head = (char*) &superblock->head;
 
     // Parse disk_path and mount_point from the command line arguments
     disk_path = argv[argc - 2];

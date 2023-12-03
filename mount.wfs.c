@@ -16,6 +16,8 @@
 #include <time.h>
 #include "wfs.h"
 
+int inode_count = 0;
+
 static char* disk_path;
 static char* mount_point;
 
@@ -138,6 +140,7 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
 
                     char* data_addr = curr_log_entry->data;
 
+                    // TODO -- THIS WILL CHANGE WITH OUR APPROACH TO .DATA IT ALSO NEEDS FIXING IN THE LOOP
                     // iterate over all dentries
                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
@@ -232,15 +235,17 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
     char full_path[PATH_MAX];
     get_full_path(path, full_path);
 
-    // TODO
-    // get the inode for the path and do the below:
+    struct wfs_log_entry* log_entry = get_log_entry(path, 0);
 
-    // stbuf->st_uid = inode.uid;
-    // stbuf->st_gid = inode.gid;
-    // stbuf->st_mtime = inode.mtime;
-    // stbuf->st_mode = inode.mode;
-    // stbuf->st_nlink = inode.links;
-    // stbuf->st_size = inode.size;
+    // Update time of last access
+    log_entry->inode.atime = time(NULL);
+
+    stbuf->st_uid = log_entry->inode.uid;
+    stbuf->st_gid = log_entry->inode.gid;
+    stbuf->st_mtime = log_entry->inode.mtime;
+    stbuf->st_mode = log_entry->inode.mode;
+    stbuf->st_nlink = log_entry->inode.links;
+    stbuf->st_size = log_entry->inode.size;
 
     return 0;
 }
@@ -262,36 +267,47 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     //      finally we would add a new dentry to this entry copy at the end of the log
     //      we add the entry associated with that dentry to the end of the log as well
 
+    // Verify file name
+    if(!isValidFilename(get_filename(path))){
+        printf("Invalid Filename");
+        return -1;
+    }
+    
+    // Verify file doesn't exist in its intended parent dir
+    if(!canCreate(path)) {
+        return -EEXIST; 
+    }
 
-    // dissect the path:
-    // if the path is root level, we need to create a log_entry
-    //  first, we create a new log entry, then we populate its inode.
-    // if the path is NOT root level, we need to create a dentry AND a log entry
-    //  find the dentry (if it is not root level) for the 
-    //  
-
-
-
+    // Create an inode for the file
     struct wfs_inode inode;
-    inode.inode_number = time(NULL); // Use timestamp as a unique inode number
+    inode_count += 1;
+
+    inode.inode_number = inode_count; // Use timestamp as a unique inode number
     inode.deleted = 0;
-    inode.mode = S_IFREG | mode;
+    inode.mode = S_IFREG;
     inode.uid = getuid();
     inode.gid = getgid();
     inode.flags = 0;
+    // TODO below?
     inode.size = 0;
     inode.atime = time(NULL);
     inode.mtime = time(NULL);
     inode.ctime = time(NULL);
     inode.links = 1;
 
-    FILE *fp = fopen(full_path, "wb");
-    if (fp == NULL) {
-        return -errno;
-    }
+    // Create a dentry
+    struct wfs_dentry* new_dentry = (struct wfs_dentry*) malloc(sizeof(struct wfs_dentry));
+    new_dentry->name = get_filename(path);
+    new_dentry->inode_number = inode.inode_number;
 
-    fwrite(&inode, sizeof(struct wfs_inode), 1, fp);
-    fclose(fp);
+    // Get parent directory log entry
+    struct wfs_entry* old_log_entry = get_log_entry(path, 0);
+
+    // TODO mark old log entry as deleted
+    // TODO make copy of old log entry and add it to log at head
+    // TODO write dentry to new log entry's data
+    // TODO update new log entry's inode's size
+    // TODO update head
 
     return 0;
 }

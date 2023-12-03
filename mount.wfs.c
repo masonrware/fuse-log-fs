@@ -115,8 +115,6 @@ char* isolate_path(const char* path) {
 
 // Get the log entry of the direct parent dir
 static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
-    // struct wfs_log_entry* target = NULL;
-
     char* curr = (char *)malloc(strlen(base) + 1);
     strcpy(curr, base);
 
@@ -144,8 +142,7 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
-                            // TODO what to do here to propagate return???
-                            struct wfs_log_entry* target = get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
+                            return get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
                     }
@@ -155,7 +152,8 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
     }
-    // return target;
+
+    return NULL;
 }
 
 // Get filename from a path

@@ -419,6 +419,27 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // Parse disk_path and mount_point from the command line arguments
+    disk_path = argv[argc - 2];
+    mount_point = argv[argc - 1];
+
+    int fd;
+
+    // Open file descriptor for file to init system with
+    fd = open(disk_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd == -1) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Get file info (for file size)
+    struct stat file_stat;
+    if (fstat(fd, &file_stat) == -1) {
+        perror("fstat");
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+
     // TODO FIX THIS
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
@@ -426,6 +447,7 @@ int main(int argc, char *argv[]) {
     // Check for errors in mmap
     if (base == MAP_FAILED) {
         // TODO Handle error
+        return -1;
     }
 
     // Cast superblock
@@ -438,10 +460,6 @@ int main(int argc, char *argv[]) {
 
     // Store head global
     head = (char*) &superblock->head;
-
-    // Parse disk_path and mount_point from the command line arguments
-    disk_path = argv[argc - 2];
-    mount_point = argv[argc - 1];
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     int fuse_argc = argc - 2;  // Adjust argc for FUSE options

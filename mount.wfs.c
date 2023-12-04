@@ -512,9 +512,22 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     // Grab log entry for desired file
     struct wfs_log_entry* f = getFile(path);
     int data_size = f->inode.size - (uint)(f->data);
-    if (((uint) f->data) + offset + size)
-    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + new_size);
-    
+
+    // Check if write exceeds current size of file data
+    if ( (((uint) f->data) + offset + size) >= (((uint) f->data) + data_size) ){
+        // Set data_size to incorporate extra data
+        data_size = (((uint) f->data) + offset + size) - ((uint) f->data);
+    }
+
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + data_size);
+
+    // memcpy old log into copy
+    // mark old log entry as deleted
+    // write buffer to offset of data
+    // change size field of new entry to be updated size
+    // add log entry to head
+    // update head
+
 }
 
 // Function to read directory entries

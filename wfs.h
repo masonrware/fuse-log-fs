@@ -12,6 +12,8 @@ struct wfs_sb {
     uint32_t head;
 };
 
+extern int inode_count;
+
 struct wfs_inode {
     unsigned int inode_number;
     unsigned int deleted;       // 1 if deleted, 0 otherwise

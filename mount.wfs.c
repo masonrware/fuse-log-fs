@@ -116,7 +116,7 @@ char* isolate_path(const char* path) {
 }
 
 // Get the log entry of the direct parent dir
-static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
+static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_number) {
     char* curr = (char *)malloc(strlen(base) + 1);
     strcpy(curr, base);
 
@@ -145,7 +145,7 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
-                            return get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
+                            return get_parent_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
                     }
@@ -160,18 +160,18 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
 }
 
 // Grab log entry for a file
-static struct wfs_log_entry* getFile(const char *path) {
+static struct wfs_log_entry* get_log_entry(const char *path, int path_type) {
     int finode;
 
-    struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
+    struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
 
     char* data_addr = parent->data;
 
-    // iterate over all dentries to find inode # for file
+    // iterate over all dentries to find inode # for target
     while(data_addr != (parent + parent->inode.size)) {
 
-        // check if current dentry matches desired filename
-        if (strcmp(((struct wfs_dentry*)data_addr)->name, fname) == 0) {
+        // check if current dentry matches desired name
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path, path_type)) == 0) {
             finode = ((struct wfs_dentry*)data_addr)->inode_number;
             break;
         }
@@ -184,7 +184,7 @@ static struct wfs_log_entry* getFile(const char *path) {
 
     curr += sizeof(struct wfs_sb); // skip past superblock
 
-    // Search for file entry with corresponding inode
+    // Search for log entry with corresponding inode
     while(curr != head) {
         struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
 
@@ -266,7 +266,7 @@ int canCreate(char *path){
     }
 
     // Check if filename is unique in directory
-    struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
+    struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
 
     char* data_addr = parent->data;
 
@@ -291,7 +291,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
     char full_path[PATH_MAX];
     get_full_path(path, full_path);
 
-    struct wfs_log_entry* log_entry = get_log_entry(path, 0);
+    struct wfs_log_entry* log_entry = get_parent_log_entry(path, 0);
 
     // Update time of last access
     log_entry->inode.atime = time(NULL);
@@ -351,7 +351,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     }
 
     // Get parent directory log entry
-    struct wfs_log_entry* old_log_entry = get_log_entry(path, 0);
+    struct wfs_log_entry* old_log_entry = get_parent_log_entry(path, 0);
 
     // Mark old log entry as deleted
     old_log_entry->inode.deleted = 1;

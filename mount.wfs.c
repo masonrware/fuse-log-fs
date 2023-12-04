@@ -437,6 +437,14 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
     struct wfs_log_entry* f = getFile(path);
+    int data_size = f->inode.size - (uint)(f->data);
+
+    // Check if offset is too large
+    if (offset >= data_size) return 0;
+
+    // Read file data into buffer
+    memcpy(buf, f->data + offset, size);
+    return size;
 }
 
 // Function to write data to a file

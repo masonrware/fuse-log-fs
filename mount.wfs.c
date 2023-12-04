@@ -522,8 +522,13 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + data_size);
 
     // memcpy old log into copy
+    memcpy(log_entry_copy, f, f->inode.size);
+    
     // mark old log entry as deleted
+    f->inode.deleted = 1;
+
     // write buffer to offset of data
+    memcpy(f->data, )
     // change size field of new entry to be updated size
     // add log entry to head
     // update head

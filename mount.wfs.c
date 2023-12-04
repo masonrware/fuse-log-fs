@@ -163,23 +163,40 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
 static struct wfs_log_entry* getFile(const char *path) {
     int finode;
 
-    // Get parent directory log entry to find file's inode #
     struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
 
     char* data_addr = parent->data;
 
-    // iterate over all dentries
+    // iterate over all dentries to find inode # for file
     while(data_addr != (parent + parent->inode.size)) {
-        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)(data_addr);
+
         // check if current dentry matches desired filename
-        if (strcmp((curr_dentry->name, fname) == 0) {
-            finode = curr_dentry->inode_number;
-            return 0;
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, fname) == 0) {
+            finode = ((struct wfs_dentry*)data_addr)->inode_number;
+            break;
         }
         data_addr += sizeof(struct wfs_dentry);
     }
 
-    struct wfs_log_entry 
+    
+    char* curr = (char *)malloc(strlen(base) + 1);
+    strcpy(curr, base);
+
+    curr += sizeof(struct wfs_sb); // skip past superblock
+
+    // Search for file entry with corresponding inode
+    while(curr != head) {
+        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
+
+        if (curr_log_entry->inode.deleted == 0){
+            // File found
+            if (curr_log_entry->inode.inode_number == finode){
+                return curr_log_entry;
+            }
+        }
+
+        curr += curr_log_entry->inode.size;
+    }
 }
 
 // Get filename from a path
@@ -255,9 +272,9 @@ int canCreate(char *path){
 
     // iterate over all dentries
     while(data_addr != (parent + parent->inode.size)) {
-        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)(data_addr);
+
         // check if current dentry matches desired filename
-        if (strcmp((curr_dentry->name, fname) == 0) return 0;
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, fname) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
     }
 
@@ -418,7 +435,8 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    
+    // Grab log entry for desired file
+    struct wfs_log_entry* f = getFile(path);
 }
 
 // Function to write data to a file

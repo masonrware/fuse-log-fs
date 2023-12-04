@@ -495,22 +495,24 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
-    struct wfs_log_entry* f = getFile(path);
+    struct wfs_log_entry* f = get_log_entry(path, 0);
     int data_size = f->inode.size - (uint)(f->data);
 
     // Check if offset is too large
-    if (offset >= data_size) return 0;
+    if (offset >= data_size || offset+size >= data_size) return 0;
 
     // Read file data into buffer
     memcpy(buf, f->data + offset, size);
+    // Update access time
     f->inode.atime = time(NULL);
+    
     return size;
 }
 
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
-    struct wfs_log_entry* f = getFile(path);
+    struct wfs_log_entry* f = get_log_entry(path, 0);
     int data_size = f->inode.size - (uint)(f->data);
 
     // Check if write exceeds current size of file data

@@ -233,7 +233,7 @@ int canCreate(char *path){
     // iterate over all dentries
     while(data_addr != (parent + parent->inode.size)) {
         // check if current dentry matches desired filename
-        if (strcmp((*data_addr->name, fname) == 0) return 0;
+        if (strcmp(*data_addr->name, fname) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
     }
 
@@ -316,17 +316,19 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     old_log_entry->inode.deleted = 1;
 
     // Make a copy of the old log entry and add the created dentry to its data field
-    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry));
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL) {
         // copy the entire old log entry (including it's data field) to the new log entry
-        // TODO there might be an error here -- new log entry is of size wfs_log_entry, old_log_entry could be larger
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
         // TODO is this redundant?
         log_entry_copy->inode.size = old_log_entry->inode.size;
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy(log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
+
+        // write the log entry copy to the log
+        memcpy(head, log_entry_copy, log_entry_copy->inode.size);
 
         // update the head
         head += log_entry_copy->inode.size;

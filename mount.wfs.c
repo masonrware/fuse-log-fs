@@ -116,7 +116,7 @@ char* isolate_path(const char* path) {
 }
 
 // Get the log entry of the direct parent dir
-static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
+static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_number) {
     char* curr = (char *)malloc(strlen(base) + 1);
     strcpy(curr, base);
 
@@ -140,11 +140,12 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
 
                     char* data_addr = curr_log_entry->data;
 
+                    // TODO -- THIS WILL CHANGE WITH OUR APPROACH TO .DATA IT ALSO NEEDS FIXING IN THE LOOP
                     // iterate over all dentries
                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
-                            return get_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
+                            return get_parent_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
                     }
@@ -156,6 +157,46 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
     }
 
     return NULL;
+}
+
+// Grab log entry for a file
+static struct wfs_log_entry* get_log_entry(const char *path, int path_type) {
+    int finode;
+
+    struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
+
+    char* data_addr = parent->data;
+
+    // iterate over all dentries to find inode # for target
+    while(data_addr != (parent + parent->inode.size)) {
+
+        // check if current dentry matches desired name
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path, path_type)) == 0) {
+            finode = ((struct wfs_dentry*)data_addr)->inode_number;
+            break;
+        }
+        data_addr += sizeof(struct wfs_dentry);
+    }
+
+    
+    char* curr = (char *)malloc(strlen(base) + 1);
+    strcpy(curr, base);
+
+    curr += sizeof(struct wfs_sb); // skip past superblock
+
+    // Search for log entry with corresponding inode
+    while(curr != head) {
+        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
+
+        if (curr_log_entry->inode.deleted == 0){
+            // File found
+            if (curr_log_entry->inode.inode_number == finode){
+                return curr_log_entry;
+            }
+        }
+
+        curr += curr_log_entry->inode.size;
+    }
 }
 
 // Get filename from a path -- second arg should be 0 if its a file path and 1 if its a dir path
@@ -267,7 +308,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
     char full_path[PATH_MAX];
     get_full_path(path, full_path);
 
-    struct wfs_log_entry* log_entry = get_log_entry(path, 0);
+    struct wfs_log_entry* log_entry = get_parent_log_entry(path, 0);
 
     // Update time of last access
     log_entry->inode.atime = time(NULL);
@@ -453,38 +494,26 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    int fd;
-    int res;
+    // Grab log entry for desired file
+    struct wfs_log_entry* f = getFile(path);
+    int data_size = f->inode.size - (uint)(f->data);
 
-    fd = open(path, O_RDONLY);
-    if (fd == -1)
-        return -errno;
+    // Check if offset is too large
+    if (offset >= data_size) return 0;
 
-    res = pread(fd, buf, size, offset);
-    if (res == -1)
-        res = -errno;
-
-    close(fd);
-
-    return res;
+    // Read file data into buffer
+    memcpy(buf, f->data + offset, size);
+    f->inode.atime = time(NULL);
+    return size;
 }
 
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    int fd;
-    int res;
-
-    fd = open(path, O_WRONLY);
-    if (fd == -1)
-        return -errno;
-
-    res = pwrite(fd, buf, size, offset);
-    if (res == -1)
-        res = -errno;
-
-    close(fd);
-
-    return res;
+    // Grab log entry for desired file
+    struct wfs_log_entry* f = getFile(path);
+    int data_size = f->inode.size - (uint)(f->data);
+    if (((uint) f->data) + offset + size)
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + new_size);
 }
 
 // Function to read directory entries

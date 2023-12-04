@@ -514,6 +514,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     int data_size = f->inode.size - (uint)(f->data);
     if (((uint) f->data) + offset + size)
     struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + new_size);
+    
 }
 
 // Function to read directory entries

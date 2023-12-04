@@ -35,7 +35,7 @@ static void get_full_path(const char *path, char *full_path) {
     strcat(full_path, path);
 }
 
-// Remove the top level part of a path
+// Remove the top level part of a path -- for use in recursive get_parent_log_entry
 char* snip_top_level(const char* path) {
     if (path == NULL || strlen(path) == 0) {
         // Handle invalid input
@@ -73,7 +73,7 @@ char* snip_top_level(const char* path) {
     return remaining_path;
 }
 
-// Remove all pre-mount portion and file extension from a path 
+// Remove all pre-mount portion as well as final file extension from a path 
 char* isolate_path(const char* path) {
     if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0) {
         // Handle invalid input
@@ -115,7 +115,9 @@ char* isolate_path(const char* path) {
     return remaining_path;
 }
 
-// Get the log entry of the direct parent dir
+// TODO -- check all below functions and make sure all calls to get_parent_log_entry and get_log_entry are correct
+
+// Get the log entry of the direct parent dir -- recursive function
 static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_number) {
     char* curr = (char *)malloc(strlen(base) + 1);
     strcpy(curr, base);
@@ -132,7 +134,7 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
                 if(strlen(path) == 0 || strlen(path) == 1) {
                     return curr_log_entry;
                 } else {
-                    char path_copy[100];  // Adjust the size according to your needs
+                    char path_copy[100];
                     strcpy(path_copy, path);
                     
                     // Use strtok to get the first token
@@ -140,7 +142,6 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
 
                     char* data_addr = curr_log_entry->data;
 
-                    // TODO -- THIS WILL CHANGE WITH OUR APPROACH TO .DATA IT ALSO NEEDS FIXING IN THE LOOP
                     // iterate over all dentries
                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
@@ -159,26 +160,27 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
     return NULL;
 }
 
-// Grab log entry for a file
-static struct wfs_log_entry* get_log_entry(const char *path, int path_type) {
+// Get a log entry for a file given a path
+static struct wfs_log_entry* get_log_entry(const char *path) {
     int finode;
 
+    // Get the parent of the path
     struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
 
     char* data_addr = parent->data;
 
-    // iterate over all dentries to find inode # for target
+    // iterate over all dentry's of the parent to find the inode number for target file/subdir
     while(data_addr != (parent + parent->inode.size)) {
-
-        // check if current dentry matches desired name
-        if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path, path_type)) == 0) {
+        // check if current dentry matches target file/subdir name
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path)) == 0) {
+            // record the inode number
             finode = ((struct wfs_dentry*)data_addr)->inode_number;
             break;
         }
         data_addr += sizeof(struct wfs_dentry);
     }
 
-    
+    // TODO continue redoing below function
     char* curr = (char *)malloc(strlen(base) + 1);
     strcpy(curr, base);
 
@@ -200,37 +202,17 @@ static struct wfs_log_entry* get_log_entry(const char *path, int path_type) {
 }
 
 // Get filename from a path -- second arg should be 0 if its a file path and 1 if its a dir path
-char* get_last_part(const char* path, int path_type) {
+char* get_last_part(const char* path) {
     if (path == NULL || strlen(path) == 0) {
         // Handle invalid input
         return NULL;
     }
 
-    size_t length = strlen(path);
-
-    char *path_copy = (char *)malloc(length);
-        
-    if (path_copy == NULL) {
-        // Handle memory allocation failure
-        return NULL;
-    }
-
-    // Copy characters
-    strncpy(path_copy, path, length);
-
-    // if it is a directory path, take off the final slash
-    if (path_type == 1) {
-        if (length > 0) {
-            // Move the null terminator one position earlier
-            path_copy[length - 1] = '\0';
-        }
-    }
-
     // Find the last occurrence of '/'
-    const char* last_slash = strrchr(path_copy, '/');
+    const char* last_slash = strrchr(path, '/');
     if (last_slash == NULL) {
         // No '/' found in the path, return a copy of the input path
-        return strdup(path_copy);
+        return strdup(path);
     }
 
     // Move the pointer after the last slash
@@ -268,9 +250,8 @@ int isValidFilename(const char *filename) {
 }
 
 // Validity check for file creation -- take in path including new filename
-int canCreate(char *path){
-    char* fname = get_last_part(path, 0);
-    char* dir = get_last_part(isolate_path(path, 0));
+int can_create(char *path){
+    char* fname = get_last_part(path);
 
     // Check return val from get_last_part
     if (strcmp(fname, "") == 0){
@@ -284,7 +265,7 @@ int canCreate(char *path){
     }
 
     // Check if filename is unique in directory
-    struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
+    struct wfs_log_entry* parent = get_parent_log_entry(path, 0);
 
     char* data_addr = parent->data;
 
@@ -360,7 +341,7 @@ static int wfs_mknod(const char *path, mode_t mode) {
     struct wfs_dentry* new_dentry = (struct wfs_dentry*)malloc(sizeof(struct wfs_dentry));
     if (new_dentry != NULL) {
         // Copy the filename to the new_dentry->name using a function like strncpy
-        strncpy(new_dentry->name, get_last_part(path, 0), MAX_FILE_NAME_LEN - 1);
+        strncpy(new_dentry->name, get_last_part(path), MAX_FILE_NAME_LEN - 1);
         new_dentry->name[MAX_FILE_NAME_LEN - 1] = '\0';  // Ensure null-termination
         new_dentry->inode_number = new_inode.inode_number;
     } else {
@@ -368,7 +349,7 @@ static int wfs_mknod(const char *path, mode_t mode) {
     }
 
     // Get parent directory log entry
-    struct wfs_log_entry* old_log_entry = get_log_entry(path, 0);
+    struct wfs_log_entry* old_log_entry = get_log_entry(path);
 
     // Mark old log entry as deleted
     old_log_entry->inode.deleted = 1;
@@ -439,7 +420,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
     struct wfs_dentry* new_dentry = (struct wfs_dentry*)malloc(sizeof(struct wfs_dentry));
     if (new_dentry != NULL) {
         // Copy the dirname to the new_dentry->name using a function like strncpy
-        strncpy(new_dentry->name, get_last_part(path, 1), MAX_FILE_NAME_LEN - 1);
+        strncpy(new_dentry->name, get_last_part(path), MAX_FILE_NAME_LEN - 1);
         new_dentry->name[MAX_FILE_NAME_LEN - 1] = '\0';  // Ensure null-termination
         new_dentry->inode_number = new_inode.inode_number;
     } else {
@@ -447,7 +428,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
     }
 
     // Get parent directory log entry
-    struct wfs_log_entry* old_log_entry = get_log_entry(path, 0);
+    struct wfs_log_entry* old_log_entry = get_log_entry(path);
 
     // Mark old log entry as deleted
     old_log_entry->inode.deleted = 1;
@@ -521,9 +502,9 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     // TODO treat offset as raw bytes into data field of log entry
 
     struct wfs_log_entry* dir_log_entry = get_log_entry(path, 1);
-    
-    char *data_addr = dir_log_entry->data;
     dir_log_entry->inode.atime = time(NULL);
+
+    char *data_addr = dir_log_entry->data;
 
     // iterate over all dentries
     while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) {
@@ -546,7 +527,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
         strcpy(total_path + len1, curr_dentry->name);
 
         // Treat all paths as a file path (arg 2 is 0) because I can't tell whether the dentry is a dir or file
-        struct wfs_log_entry* curr_log_entry = get_log_entry(total_path, 0);
+        struct wfs_log_entry* curr_log_entry = get_log_entry(total_path);
         // Update time of last access
         curr_log_entry->inode.atime = time(NULL);
 
@@ -574,11 +555,22 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 
 // Function to unlink (delete) a file
 static int wfs_unlink(const char *path) {
-    int res = unlink(path);
-    if (res == -1)
-        return -errno;
+    // TODO find parent directory
+    // TODO find file/dir's log entry from its dentry like above
+    // TODO mark the above log entry as deleted (and update atime, and other time)
+    // TODO make an updated copy of the parent log entry and remove the dentry -- updating size by subtracting and updating head by updating
+    
+    struct wfs_log_entry* parent_dir_log_entry = get_parent_log_entry(path, 0);
+    parent_dir_log_entry->inode.atime = time(NULL);
 
-    return res;
+    // mark parent as deleted
+    parent_dir_log_entry->inode.deleted = 1;
+
+    // TODO we could be unlinking a directory?
+    struct wfs_log_entry* dir_log_entry = get_log_entry(path);
+    dir_log_entry->inode.atime = time(NULL);
+
+    char *data_addr = dir_log_entry->data;
 }
 
 static struct fuse_operations my_operations = {

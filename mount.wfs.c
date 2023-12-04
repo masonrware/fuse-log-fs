@@ -518,13 +518,56 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+    // TODO treat offset as raw bytes into data field of log entry
+
+    struct wfs_log_entry* dir_log_entry = get_log_entry(path, 1);
     
-    // 1. Find the first directory entry following the given offset (see below).
-    // 2. Optionally, create a struct stat that describes the file as for getattr (but FUSE only looks at st_ino and the file-type bits of st_mode).
-    // 3. Call the filler function with arguments of buf, the null-terminated filename, the address of your struct stat (or NULL if you have none), and the offset of the next directory entry.
-    // 4. If filler returns nonzero, or if there are no more files, return 0.
-    // 5. Find the next file in the directory.
-    // 6. Go back to step 2. 
+    char *data_addr = dir_log_entry->data;
+    dir_log_entry->inode.atime = time(NULL);
+
+    // iterate over all dentries
+    while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) {
+        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;
+
+        size_t len1 = strlen(path);
+        size_t len2 = strlen(curr_dentry->name);
+        size_t totalLength = len1 + len2;
+
+        // Allocate memory for the new string
+        char *total_path = (char *)malloc(totalLength + 1);  // +1 for the null terminator
+
+        if (total_path == NULL) {
+            // Handle memory allocation failure
+            return NULL;
+        }
+
+        // Copy the contents of the original strings to the new string
+        strcpy(total_path, path);
+        strcpy(total_path + len1, curr_dentry->name);
+
+        // Treat all paths as a file path (arg 2 is 0) because I can't tell whether the dentry is a dir or file
+        struct wfs_log_entry* curr_log_entry = get_log_entry(total_path, 0);
+        // Update time of last access
+        curr_log_entry->inode.atime = time(NULL);
+
+        // create a struct stat for the log entry
+        struct stat stbuf;
+        // populate stat struct
+        stbuf.st_uid = curr_log_entry->inode.uid;
+        stbuf.st_gid = curr_log_entry->inode.gid;
+        stbuf.st_atime = curr_log_entry->inode.atime;
+        stbuf.st_mtime = curr_log_entry->inode.mtime;
+        stbuf.st_mode = curr_log_entry->inode.mode;
+        stbuf.st_nlink = curr_log_entry->inode.links;
+        stbuf.st_size = curr_log_entry->inode.size;
+        
+        offset += sizeof(struct wfs_dentry);
+        if(filler(buf, curr_dentry->name, &stbuf, offset) != 0) {
+            return 0;
+        }
+
+        data_addr += sizeof(struct wfs_dentry);
+    }
 
     return 0;
 }

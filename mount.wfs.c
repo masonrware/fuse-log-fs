@@ -274,6 +274,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
 
     stbuf->st_uid = log_entry->inode.uid;
     stbuf->st_gid = log_entry->inode.gid;
+    stbuf->st_atime = log_entry->inode.atime;
     stbuf->st_mtime = log_entry->inode.mtime;
     stbuf->st_mode = log_entry->inode.mode;
     stbuf->st_nlink = log_entry->inode.links;
@@ -450,8 +451,6 @@ static int wfs_mkdir(const char *path, mode_t mode) {
     return 0;
 }
 
-// TODO redo all of below functions:
-
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     int fd;
@@ -490,20 +489,13 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-    DIR *dir;
-    struct dirent *dp;
-    (void) offset;
-    (void) fi;
-
-    dir = opendir(path);
-    if (dir == NULL)
-        return -errno;
-
-    while ((dp = readdir(dir)) != NULL) {
-        filler(buf, dp->d_name, NULL, 0);
-    }
-
-    closedir(dir);
+    
+    // 1. Find the first directory entry following the given offset (see below).
+    // 2. Optionally, create a struct stat that describes the file as for getattr (but FUSE only looks at st_ino and the file-type bits of st_mode).
+    // 3. Call the filler function with arguments of buf, the null-terminated filename, the address of your struct stat (or NULL if you have none), and the offset of the next directory entry.
+    // 4. If filler returns nonzero, or if there are no more files, return 0.
+    // 5. Find the next file in the directory.
+    // 6. Go back to step 2. 
 
     return 0;
 }

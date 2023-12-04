@@ -28,12 +28,12 @@ struct wfs_sb* superblock;
 struct wfs_inode root_inode;
 struct wfs_log_entry root_log_entry;
 
-// Helper function to get the full path of a file or directory
-static void get_full_path(const char *path, char *full_path) {
-    strcpy(full_path, disk_path);
-    strcat(full_path, "/");
-    strcat(full_path, path);
-}
+// // Helper function to get the full path of a file or directory
+// static void get_full_path(const char *path, char *full_path) {
+//     strcpy(full_path, disk_path);
+//     strcat(full_path, "/");
+//     strcat(full_path, path);
+// }
 
 // Remove the top level part of a path -- for use in recursive get_parent_log_entry
 char* snip_top_level(const char* path) {
@@ -119,8 +119,7 @@ char* isolate_path(const char* path) {
 
 // Get the log entry of the direct parent dir -- recursive function
 static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_number) {
-    char* curr = (char *)malloc(strlen(base) + 1);
-    strcpy(curr, base);
+    char* curr = base;
 
     // iterate past the superblock
     curr += sizeof(struct wfs_sb); // skip past superblock
@@ -160,18 +159,18 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
     return NULL;
 }
 
-// Get a log entry for a file given a path
+// Get a log entry for a file/subdir given a path
 static struct wfs_log_entry* get_log_entry(const char *path) {
     int finode;
 
-    // Get the parent of the path
+    // Get the parent of the file/subdir
     struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
 
     char* data_addr = parent->data;
 
-    // iterate over all dentry's of the parent to find the inode number for target file/subdir
+    // Find the file/subdir among the dentry's of its parent
     while(data_addr != (parent + parent->inode.size)) {
-        // check if current dentry matches target file/subdir name
+        // Check if current dentry matches target file/subdir by name
         if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path)) == 0) {
             // record the inode number
             finode = ((struct wfs_dentry*)data_addr)->inode_number;
@@ -180,16 +179,16 @@ static struct wfs_log_entry* get_log_entry(const char *path) {
         data_addr += sizeof(struct wfs_dentry);
     }
 
-    // TODO continue redoing below function
-    char* curr = (char *)malloc(strlen(base) + 1);
-    strcpy(curr, base);
+    // Iterate over the log
+    char* curr = base;
 
     curr += sizeof(struct wfs_sb); // skip past superblock
 
-    // Search for log entry with corresponding inode
+    // Search for log_entry with corresponding inode
     while(curr != head) {
         struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
 
+        // If not deleted
         if (curr_log_entry->inode.deleted == 0){
             // File found
             if (curr_log_entry->inode.inode_number == finode){
@@ -199,9 +198,11 @@ static struct wfs_log_entry* get_log_entry(const char *path) {
 
         curr += curr_log_entry->inode.size;
     }
+
+    return NULL;
 }
 
-// Get filename from a path -- second arg should be 0 if its a file path and 1 if its a dir path
+// Get filename from a path
 char* get_last_part(const char* path) {
     if (path == NULL || strlen(path) == 0) {
         // Handle invalid input
@@ -219,24 +220,25 @@ char* get_last_part(const char* path) {
     last_slash += 1;
 
     // Calculate the length of the filename
-    size_t filename_length = strlen(last_slash);
+    size_t last_part_length = strlen(last_slash);
 
     // Allocate memory for the filename
-    char* filename = (char*)malloc((filename_length + 1) * sizeof(char));
-    if (filename == NULL) {
+    char* last_part = (char*)malloc((last_part_length + 1) * sizeof(char));
+    if (last_part == NULL) {
         // Memory allocation failed
         perror("Memory allocation error");
         exit(EXIT_FAILURE);
     }
 
     // Copy the filename into the new string
-    strcpy(filename, last_slash);
+    strcpy(last_part, last_slash);
 
-    return filename;
+    return last_part;
 }
 
 // Check if filename contains valid characters
-int isValidFilename(const char *filename) {
+// TODO check length as well?
+int valid_name(const char *filename) {
     while (*filename != '\0') {
         if (!(isalnum(*filename) || *filename == '_')) {
             // If the character is not alphanumeric or underscore, the filename is invalid
@@ -249,18 +251,19 @@ int isValidFilename(const char *filename) {
     return 1;
 }
 
-// Validity check for file creation -- take in path including new filename
+// Check if file/subdir can be created -- validate name and (local) uniqueness
 int can_create(char *path){
-    char* fname = get_last_part(path);
+    char* last_part = get_last_part(path);
 
+    // TODO is the below necessary?
     // Check return val from get_last_part
-    if (strcmp(fname, "") == 0){
+    if (strcmp(last_part, "") == 0){
         printf("Empty filename\n");
     }
 
     // Check filename
-    if (!isValidFilename(fname)){
-        printf("Invalid filename\n");
+    if (!valid_name(last_part)){
+        printf("Invalid file or subdir name\n");
         return 0;
     }
 
@@ -269,15 +272,14 @@ int can_create(char *path){
 
     char* data_addr = parent->data;
 
-    // iterate over all dentries
+    // iterate over all dentry's of parent
     while(data_addr != (parent + parent->inode.size)) {
-
         // check if current dentry matches desired filename
-        if (strcmp(((struct wfs_dentry*)data_addr)->name, fname) == 0) return 0;
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, last_part) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
     }
 
-    // filename is valid for given directory
+    // file/subdir name is valid for its targeted parent directory
     return 1;
 }
 
@@ -286,10 +288,10 @@ int can_create(char *path){
 
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf) {
-    char full_path[PATH_MAX];
-    get_full_path(path, full_path);
+    // char full_path[PATH_MAX];
+    // get_full_path(path, full_path);
 
-    struct wfs_log_entry* log_entry = get_parent_log_entry(path, 0);
+    struct wfs_log_entry* log_entry = get_log_entry(path);
 
     // Update time of last access
     log_entry->inode.atime = time(NULL);
@@ -307,21 +309,22 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
 
 // Function to create a regular file
 static int wfs_mknod(const char *path, mode_t mode) {
-    char full_path[PATH_MAX];
-    get_full_path(path, full_path);
+    // char full_path[PATH_MAX];
+    // get_full_path(path, full_path);
 
+    // TODO is this redundant given next call
     // Verify file name
-    if(!isValidFilename(get_last_part(path, 0))){
+    if(!valid_name(get_last_part(path))){
         printf("Invalid Filename");
         return -1;
     }
     
-    // Verify file doesn't exist in its intended parent dir
-    if(!canCreate(path)) {
+    // Verify file doesn't exist in its intended parent dir (and that its name is valid)
+    if(!can_create(path)) {
         return -EEXIST; 
     }
 
-    // Create an inode for the file
+    // Create a new inode for the file
     struct wfs_inode new_inode;
     inode_count += 1;
 
@@ -399,7 +402,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
     char full_path[PATH_MAX];
     get_full_path(path, full_path);
 
-    // create new inode for directory
+    // create a new inode for the subdirectory
     struct wfs_inode new_inode;
     inode_count += 1;
 

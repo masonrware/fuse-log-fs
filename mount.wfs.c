@@ -444,25 +444,17 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 
     // Read file data into buffer
     memcpy(buf, f->data + offset, size);
+    f->inode.atime = time(NULL);
     return size;
 }
 
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    int fd;
-    int res;
-
-    fd = open(path, O_WRONLY);
-    if (fd == -1)
-        return -errno;
-
-    res = pwrite(fd, buf, size, offset);
-    if (res == -1)
-        res = -errno;
-
-    close(fd);
-
-    return res;
+    // Grab log entry for desired file
+    struct wfs_log_entry* f = getFile(path);
+    int data_size = f->inode.size - (uint)(f->data);
+    if (((uint) f->data) + offset + size)
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + new_size);
 }
 
 // Function to read directory entries

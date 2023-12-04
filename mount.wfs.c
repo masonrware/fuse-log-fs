@@ -199,18 +199,39 @@ static struct wfs_log_entry* get_log_entry(const char *path, int path_type) {
     }
 }
 
-// Get filename from a path
-char* get_filename(const char* path) {
+
+// Get filename from a path -- second arg should be 0 if its a file path and 1 if its a dir path
+char* get_last_part(const char* path, int path_type) {
     if (path == NULL || strlen(path) == 0) {
         // Handle invalid input
         return NULL;
     }
 
+    size_t length = strlen(path);
+
+    char *path_copy = (char *)malloc(length);
+        
+    if (path_copy == NULL) {
+        // Handle memory allocation failure
+        return NULL;
+    }
+
+    // Copy characters
+    strncpy(path_copy, path, length);
+
+    // if it is a directory path, take off the final slash
+    if (path_type == 1) {
+        if (length > 0) {
+            // Move the null terminator one position earlier
+            path_copy[length - 1] = '\0';
+        }
+    }
+
     // Find the last occurrence of '/'
-    const char* last_slash = strrchr(path, '/');
+    const char* last_slash = strrchr(path_copy, '/');
     if (last_slash == NULL) {
         // No '/' found in the path, return a copy of the input path
-        return strdup(path);
+        return strdup(path_copy);
     }
 
     // Move the pointer after the last slash
@@ -247,14 +268,12 @@ int isValidFilename(const char *filename) {
     return 1;
 }
 
-// Validity check for file creation
-// take in path including new filename
-// TODO FINISH BELOW
+// Validity check for file creation -- take in path including new filename
 int canCreate(char *path){
-    char* fname = get_filename(path);
-    char* dir = get_filename(isolate_path(path));
+    char* fname = get_last_part(path, 0);
+    char* dir = get_last_part(isolate_path(path, 0));
 
-    // Check return val from get_filename
+    // Check return val from get_last_part
     if (strcmp(fname, "") == 0){
         printf("Empty filename\n");
     }
@@ -266,7 +285,7 @@ int canCreate(char *path){
     }
 
     // Check if filename is unique in directory
-    struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
+    struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
 
     char* data_addr = parent->data;
 

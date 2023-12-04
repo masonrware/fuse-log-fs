@@ -220,10 +220,25 @@ int canCreate(char *path){
     }
 
     // Check filename
-    if (!isValidFilename(fname)) return 0;
+    if (!isValidFilename(fname)){
+        printf("Invalid filename\n");
+        return 0;
+    }
 
     // Check if filename is unique in directory
-    
+    struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
+
+    struct wfs_dentry* data_addr = (struct wfs_dentry*)parent->data;
+
+    // iterate over all dentries
+    while(data_addr != (parent + parent->inode.size)) {
+        // check if current dentry matches desired filename
+        if (strcmp((*data_addr->name, fname) == 0) return 0;
+        data_addr += sizeof(struct wfs_dentry);
+    }
+
+    // filename is valid for given directory
+    return 1;
 }
 
 

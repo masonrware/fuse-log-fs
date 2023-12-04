@@ -166,15 +166,16 @@ static struct wfs_log_entry* getFile(const char *path) {
     // Get parent directory log entry to find file's inode #
     struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
 
-    struct wfs_dentry* data_addr = (struct wfs_dentry*)parent->data;
+    char* data_addr = parent->data;
 
     // iterate over all dentries
     while(data_addr != (parent + parent->inode.size)) {
+        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)(data_addr);
         // check if current dentry matches desired filename
-        if (strcmp((*data_addr->name, fname) == 0){
-            finode = *data_addr->
+        if (strcmp((curr_dentry->name, fname) == 0) {
+            finode = curr_dentry->inode_number;
+            return 0;
         }
-
         data_addr += sizeof(struct wfs_dentry);
     }
 
@@ -250,12 +251,13 @@ int canCreate(char *path){
     // Check if filename is unique in directory
     struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
 
-    struct wfs_dentry* data_addr = (struct wfs_dentry*)parent->data;
+    char* data_addr = parent->data;
 
     // iterate over all dentries
     while(data_addr != (parent + parent->inode.size)) {
+        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)(data_addr);
         // check if current dentry matches desired filename
-        if (strcmp((*data_addr->name, fname) == 0) return 0;
+        if (strcmp((curr_dentry->name, fname) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
     }
 

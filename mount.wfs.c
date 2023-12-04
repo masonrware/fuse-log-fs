@@ -518,7 +518,14 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-    
+    // TODO treat offset as raw bytes into data field of log entry
+    // TODO first, call get_log_entry, 1 with path
+    // TODO second, iterate over its dentries
+    // TODO third, call get_log_entry, 1/0 (!!! based on what !!! - could just treat them all as files?) on each dentry to get its corresponding log entry (inode)
+    // TODO fourth, populate the stat struct like in getattr
+    // TODO fifth, call filler
+    // TODO sixth, finish iterating -- return 0
+
     // 1. Find the first directory entry following the given offset (see below).
     // 2. Optionally, create a struct stat that describes the file as for getattr (but FUSE only looks at st_ino and the file-type bits of st_mode).
     // 3. Call the filler function with arguments of buf, the null-terminated filename, the address of your struct stat (or NULL if you have none), and the offset of the next directory entry.

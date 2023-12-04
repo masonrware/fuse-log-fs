@@ -158,18 +158,38 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
     return NULL;
 }
 
-// Get filename from a path
-char* get_filename(const char* path) {
+// Get filename from a path -- second arg should be 0 if its a file path and 1 if its a dir path
+char* get_last_part(const char* path, int path_type) {
     if (path == NULL || strlen(path) == 0) {
         // Handle invalid input
         return NULL;
     }
 
+    size_t length = strlen(path);
+
+    char *path_copy = (char *)malloc(length);
+        
+    if (path_copy == NULL) {
+        // Handle memory allocation failure
+        return NULL;
+    }
+
+    // Copy characters
+    strncpy(path_copy, path, length);
+
+    // if it is a directory path, take off the final slash
+    if (path_type == 1) {
+        if (length > 0) {
+            // Move the null terminator one position earlier
+            path_copy[length - 1] = '\0';
+        }
+    }
+
     // Find the last occurrence of '/'
-    const char* last_slash = strrchr(path, '/');
+    const char* last_slash = strrchr(path_copy, '/');
     if (last_slash == NULL) {
         // No '/' found in the path, return a copy of the input path
-        return strdup(path);
+        return strdup(path_copy);
     }
 
     // Move the pointer after the last slash
@@ -208,10 +228,10 @@ int isValidFilename(const char *filename) {
 
 // Validity check for file creation -- take in path including new filename
 int canCreate(char *path){
-    char* fname = get_filename(path);
-    char* dir = get_filename(isolate_path(path));
+    char* fname = get_last_part(path, 0);
+    char* dir = get_last_part(isolate_path(path, 0));
 
-    // Check return val from get_filename
+    // Check return val from get_last_part
     if (strcmp(fname, "") == 0){
         printf("Empty filename\n");
     }
@@ -239,7 +259,6 @@ int canCreate(char *path){
     return 1;
 }
 
-
 ////// BELOW IS FOR FUSE ///////
 
 
@@ -264,12 +283,12 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
 }
 
 // Function to create a regular file
-static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
+static int wfs_mknod(const char *path, mode_t mode) {
     char full_path[PATH_MAX];
     get_full_path(path, full_path);
 
     // Verify file name
-    if(!isValidFilename(get_filename(path))){
+    if(!isValidFilename(get_last_part(path, 0))){
         printf("Invalid Filename");
         return -1;
     }
@@ -283,9 +302,9 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     struct wfs_inode new_inode;
     inode_count += 1;
 
-    new_inode.inode_number = inode_count; // Use timestamp as a unique inode number
+    new_inode.inode_number = inode_count;
     new_inode.deleted = 0;
-    new_inode.mode = S_IFREG;
+    new_inode.mode = mode;
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
@@ -299,7 +318,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     struct wfs_dentry* new_dentry = (struct wfs_dentry*)malloc(sizeof(struct wfs_dentry));
     if (new_dentry != NULL) {
         // Copy the filename to the new_dentry->name using a function like strncpy
-        strncpy(new_dentry->name, get_filename(path), MAX_FILE_NAME_LEN - 1);
+        strncpy(new_dentry->name, get_last_part(path, 0), MAX_FILE_NAME_LEN - 1);
         new_dentry->name[MAX_FILE_NAME_LEN - 1] = '\0';  // Ensure null-termination
         new_dentry->inode_number = new_inode.inode_number;
     } else {
@@ -358,34 +377,75 @@ static int wfs_mkdir(const char *path, mode_t mode) {
     get_full_path(path, full_path);
 
     // create new inode for directory
-    struct wfs_inode inode;
-    inode.inode_number = time(NULL);
-    inode.deleted = 0;
-    inode.mode = S_IFDIR | mode;
-    inode.uid = getuid();
-    inode.gid = getgid();
-    inode.flags = 0;
-    inode.size = 0;
-    inode.atime = time(NULL);
-    inode.mtime = time(NULL);
-    inode.ctime = time(NULL);
-    inode.links = 2; // "." and ".." entries
+    struct wfs_inode new_inode;
+    inode_count += 1;
 
-    FILE *fp = fopen(full_path, "wb");
-    if (fp == NULL) {
-        return -errno;
+    new_inode.inode_number = inode_count;
+    new_inode.deleted = 0;
+    new_inode.mode = mode;
+    new_inode.uid = getuid();
+    new_inode.gid = getgid();
+    new_inode.flags = 0;
+    new_inode.size = sizeof(struct wfs_inode);
+    new_inode.atime = time(NULL);
+    new_inode.mtime = time(NULL);
+    new_inode.ctime = time(NULL);
+    // TODO should this be 2 -- piazza 1524
+    new_inode.links = 0;
+
+    // Create a new dentry for the directory
+    struct wfs_dentry* new_dentry = (struct wfs_dentry*)malloc(sizeof(struct wfs_dentry));
+    if (new_dentry != NULL) {
+        // Copy the dirname to the new_dentry->name using a function like strncpy
+        strncpy(new_dentry->name, get_last_part(path, 1), MAX_FILE_NAME_LEN - 1);
+        new_dentry->name[MAX_FILE_NAME_LEN - 1] = '\0';  // Ensure null-termination
+        new_dentry->inode_number = new_inode.inode_number;
+    } else {
+        // Handle allocation failure
     }
 
-    fwrite(&inode, sizeof(struct wfs_inode), 1, fp);
-    fclose(fp);
+    // Get parent directory log entry
+    struct wfs_log_entry* old_log_entry = get_log_entry(path, 0);
 
-    // Create "." and ".." entries
-    char dot_path[PATH_MAX];
-    char dotdot_path[PATH_MAX];
-    sprintf(dot_path, "%s/.", full_path);
-    sprintf(dotdot_path, "%s/..", full_path);
-    wfs_mknod(dot_path, S_IFDIR | mode, 0);
-    wfs_mknod(dotdot_path, S_IFDIR | mode, 0);
+    // Mark old log entry as deleted
+    old_log_entry->inode.deleted = 1;
+
+    // Make a copy of the old log entry and add the created dentry to its data field
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
+    if (log_entry_copy != NULL) {
+        // copy the entire old log entry (including it's data field) to the new log entry
+        memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
+        // TODO is this redundant?
+        log_entry_copy->inode.size = old_log_entry->inode.size;
+
+        // add the dentry to log_entry_copy's data and update new log entry's size
+        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        log_entry_copy->inode.size += sizeof(struct wfs_dentry);
+
+        // write the log entry copy to the log
+        memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update the head
+        head += log_entry_copy->inode.size;
+    } else {
+        // Handle allocation failure
+    }
+
+    // Create a log entry for the file itself
+    struct wfs_log_entry* new_log_entry = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry));
+    if (new_log_entry != NULL) {
+        // point the log entry at the created inode
+        // TODO should I use memcpy?
+        new_log_entry->inode = new_inode;
+
+        // add log entry to the log
+        memcpy(head, new_log_entry, sizeof(new_log_entry->inode.size));
+
+        // update the head
+        head += new_log_entry->inode.size;
+    } else {
+        // Handle allocation failure
+    }
 
     return 0;
 }

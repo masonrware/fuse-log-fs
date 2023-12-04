@@ -53,7 +53,7 @@ void initialize_filesystem(const char *disk_path) {
         .atime = time(NULL),    // Set to the current time
         .mtime = time(NULL),    // Set to the current time
         .ctime = time(NULL),    // Set to the current time
-        .links = 2,             // Number of hard links (including "." and "..")
+        .links = 0,             // Number of hard links
     };
 
     struct wfs_log_entry root_log_entry = {

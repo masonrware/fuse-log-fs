@@ -140,7 +140,6 @@ static struct wfs_log_entry* get_log_entry(const char *path, int inode_number) {
 
                     char* data_addr = curr_log_entry->data;
 
-                    // TODO -- THIS WILL CHANGE WITH OUR APPROACH TO .DATA IT ALSO NEEDS FIXING IN THE LOOP
                     // iterate over all dentries
                     while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
@@ -207,9 +206,7 @@ int isValidFilename(const char *filename) {
     return 1;
 }
 
-// Validity check for file creation
-// take in path including new filename
-// TODO FINISH BELOW
+// Validity check for file creation -- take in path including new filename
 int canCreate(char *path){
     char* fname = get_filename(path);
     char* dir = get_filename(isolate_path(path));
@@ -228,12 +225,13 @@ int canCreate(char *path){
     // Check if filename is unique in directory
     struct wfs_log_entry* parent = get_log_entry(isolate_path(path), 0);
 
-    struct wfs_dentry* data_addr = (struct wfs_dentry*)parent->data;
+    char* data_addr = parent->data;
 
     // iterate over all dentries
     while(data_addr != (parent + parent->inode.size)) {
+
         // check if current dentry matches desired filename
-        if (strcmp(*data_addr->name, fname) == 0) return 0;
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, fname) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
     }
 
@@ -291,7 +289,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t dev) {
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
-    // TODO what to do for below?
     new_inode.size = sizeof(struct wfs_inode);
     new_inode.atime = time(NULL);
     new_inode.mtime = time(NULL);
@@ -360,6 +357,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
     char full_path[PATH_MAX];
     get_full_path(path, full_path);
 
+    // create new inode for directory
     struct wfs_inode inode;
     inode.inode_number = time(NULL);
     inode.deleted = 0;

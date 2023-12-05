@@ -609,7 +609,8 @@ static int wfs_unlink(const char *path) {
     struct wfs_log_entry* dir_log_entry = get_log_entry(path);
     dir_log_entry->inode.atime = time(NULL);
 
-    char *data_addr = dir_log_entry->data;
+    // char *data_addr = dir_log_entry->data;
+    return 0;
 }
 
 static struct fuse_operations my_operations = {

@@ -534,6 +534,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     // update head
     head += log_entry_copy->inode.size;
 
+    return size;
 }
 
 // Function to read directory entries

@@ -504,7 +504,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
     // TODO treat offset as raw bytes into data field of log entry
 
-    struct wfs_log_entry* dir_log_entry = get_log_entry(path, 1);
+    struct wfs_log_entry* dir_log_entry = get_log_entry(path);
     dir_log_entry->inode.atime = time(NULL);
 
     char *data_addr = dir_log_entry->data;

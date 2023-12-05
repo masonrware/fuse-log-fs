@@ -308,7 +308,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
 }
 
 // Function to create a regular file
-static int wfs_mknod(const char *path, mode_t mode) {
+static int wfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     // char full_path[PATH_MAX];
     // get_full_path(path, full_path);
 

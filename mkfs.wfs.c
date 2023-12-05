@@ -65,7 +65,7 @@ void initialize_filesystem(const char *disk_path) {
     size_t root_log_entry_size = sizeof(struct wfs_log_entry);
 
     // Place the root log entry at the head address
-    memcpy((char*)superblock->head, &root_log_entry, root_log_entry_size);
+    memcpy((void*)superblock->head, &root_log_entry, root_log_entry_size);
 
     // Update the head to be after the added root log entry
     superblock->head += root_log_entry_size;

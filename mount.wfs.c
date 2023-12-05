@@ -29,11 +29,11 @@ struct wfs_inode root_inode;
 struct wfs_log_entry root_log_entry;
 
 // // Helper function to get the full path of a file or directory
-// static void get_full_path(const char *path, char *full_path) {
-//     strcpy(full_path, disk_path);
-//     strcat(full_path, "/");
-//     strcat(full_path, path);
-// }
+static void get_full_path(const char *path, char *full_path) {
+    strcpy(full_path, disk_path);
+    strcat(full_path, "/");
+    strcat(full_path, path);
+}
 
 // Remove the top level part of a path -- for use in recursive get_parent_log_entry
 char* snip_top_level(const char* path) {

@@ -142,7 +142,7 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
                     char* data_addr = curr_log_entry->data;
 
                     // iterate over all dentries
-                    while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
+                    while(data_addr != (char*)(curr_log_entry + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
                             return get_parent_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
@@ -169,7 +169,7 @@ static struct wfs_log_entry* get_log_entry(const char *path) {
     char* data_addr = parent->data;
 
     // Find the file/subdir among the dentry's of its parent
-    while(data_addr != (parent + parent->inode.size)) {
+    while(data_addr != (char*)(parent + parent->inode.size)) {
         // Check if current dentry matches target file/subdir by name
         if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path)) == 0) {
             // record the inode number
@@ -273,7 +273,7 @@ int can_create(char *path){
     char* data_addr = parent->data;
 
     // iterate over all dentry's of parent
-    while(data_addr != (parent + parent->inode.size)) {
+    while(data_addr != (char*)(parent + parent->inode.size)) {
         // check if current dentry matches desired filename
         if (strcmp(((struct wfs_dentry*)data_addr)->name, last_part) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
@@ -541,7 +541,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) {
+    while(data_addr != (char*)(dir_log_entry + dir_log_entry->inode.size)) {
         struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;
 
         size_t len1 = strlen(path);

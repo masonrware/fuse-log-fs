@@ -386,7 +386,7 @@ static int wfs_mknod(const char *path, mode_t mode) {
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
-        memcpy(head, new_log_entry, sizeof(new_log_entry->inode.size));
+        memcpy(head, new_log_entry, new_log_entry->inode.size);
 
         // update the head
         head += new_log_entry->inode.size;
@@ -465,7 +465,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
-        memcpy(head, new_log_entry, sizeof(new_log_entry->inode.size));
+        memcpy(head, new_log_entry, new_log_entry->inode.size);
 
         // update the head
         head += new_log_entry->inode.size;
@@ -502,12 +502,11 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-    // TODO treat offset as raw bytes into data field of log entry
-
     struct wfs_log_entry* dir_log_entry = get_log_entry(path);
     dir_log_entry->inode.atime = time(NULL);
 
-    char *data_addr = dir_log_entry->data;
+    // incorporate offset as multiple of dentry's
+    char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
     while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) {

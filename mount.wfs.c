@@ -602,8 +602,10 @@ static int wfs_unlink(const char *path) {
     log_entry->inode.deleted = 1;
     // decrement inode links count
     log_entry->inode.links -= 1;
+    // update inode change time
+    log_entry->inode.ctime = time(NULL);
 
-    // Make a copy of the old parent log entry and remove the files dentry from
+    // Make a copy of the old parent log entry and remove the files dentry from the new data member (don't copy it over)
     struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(parent_log_entry->inode.size - sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL) {
         // find the address offset of the dentry for this file
@@ -620,12 +622,12 @@ static int wfs_unlink(const char *path) {
         // memcpy up to target file's dentry to delete
         memcpy(log_entry_copy, parent_log_entry, data_addr - parent_log_entry);
 
-        // memcpy after the deleted dentry -- if this check hits it means the deleted file was the last dentry of the parent log entry
+        // memcpy after the deleted dentry -- if this check does not hit, it means the deleted file was the last dentry of the parent log entry
         if(data_addr != parent_log_entry->inode.size - sizeof(struct wfs_dentry)) {
             // the start of the remaining data portion of the copy of the parent's log entry
-            char * data_start_addr = log_entry_copy+(data_addr - parent_log_entry);
+            char *data_start_addr = log_entry_copy+(data_addr - parent_log_entry);
             // the address of the remaining data in the original parent (after the deleted target file's dentry)
-            char * parent_after_data_addr = data_addr+sizeof(struct wfs_dentry);
+            char *parent_after_data_addr = data_addr+sizeof(struct wfs_dentry);
             // the size remaining after the child's dentry
             uint parent_remaining_size = (parent_log_entry+parent_log_entry->inode.size)-(data_addr+sizeof(struct wfs_dentry));
             

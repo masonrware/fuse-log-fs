@@ -482,7 +482,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
     struct wfs_log_entry* f = get_log_entry(path);
-    int data_size = ((int) f) + f->inode.size - (int)(f->data);
+    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if offset is too large
     if (offset >= data_size) return 0;
@@ -499,7 +499,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     struct wfs_log_entry* f = get_log_entry(path);
 
     // end of log entry - start of data field
-    int data_size = ((uint) f) + f->inode.size - (uint)(f->data);
+    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if write exceeds current size of file data
     // TODO check if the write would exceed disk size?

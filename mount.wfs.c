@@ -543,7 +543,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 
     // iterate over all dentries
     while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) { // (dir_log_entry + dir_log_entry->inode.size)
-        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;     // should this be a pointer?
+        struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;
 
         size_t len1 = strlen(path);
         size_t len2 = strlen(curr_dentry->name);

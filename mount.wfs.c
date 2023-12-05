@@ -142,7 +142,7 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
                     char* data_addr = curr_log_entry->data;
 
                     // iterate over all dentries
-                    while(data_addr != (curr_log_entry->data + curr_log_entry->inode.size)) {
+                    while(data_addr != (char*)(curr_log_entry + curr_log_entry->inode.size)) {
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry*) data_addr)->name, ancestor) == 0) {
                             return get_parent_log_entry(snip_top_level(path), ((struct wfs_dentry*) data_addr)->inode_number);
@@ -153,49 +153,6 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
             }
         }
         // we design the inode's size to be updated with size of data member of log entry struct
-        curr += curr_log_entry->inode.size;
-    }
-
-    return NULL;
-}
-
-// Get a log entry for a file/subdir given a path
-static struct wfs_log_entry* get_log_entry(const char *path) {
-    int finode;
-
-    // Get the parent of the file/subdir
-    struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
-
-    char* data_addr = parent->data;
-
-    // Find the file/subdir among the dentry's of its parent
-    while(data_addr != (parent + parent->inode.size)) {
-        // Check if current dentry matches target file/subdir by name
-        if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path)) == 0) {
-            // record the inode number
-            finode = ((struct wfs_dentry*)data_addr)->inode_number;
-            break;
-        }
-        data_addr += sizeof(struct wfs_dentry);
-    }
-
-    // Iterate over the log
-    char* curr = base;
-
-    curr += sizeof(struct wfs_sb); // skip past superblock
-
-    // Search for log_entry with corresponding inode
-    while(curr != head) {
-        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
-
-        // If not deleted
-        if (curr_log_entry->inode.deleted == 0){
-            // File found
-            if (curr_log_entry->inode.inode_number == finode){
-                return curr_log_entry;
-            }
-        }
-
         curr += curr_log_entry->inode.size;
     }
 
@@ -236,6 +193,49 @@ char* get_last_part(const char* path) {
     return last_part;
 }
 
+// Get a log entry for a file/subdir given a path
+static struct wfs_log_entry* get_log_entry(const char *path) {
+    int finode;
+
+    // Get the parent of the file/subdir
+    struct wfs_log_entry* parent = get_parent_log_entry(isolate_path(path), 0);
+
+    char* data_addr = parent->data;
+
+    // Find the file/subdir among the dentry's of its parent
+    while(data_addr != (char*)(parent + parent->inode.size)) {
+        // Check if current dentry matches target file/subdir by name
+        if (strcmp(((struct wfs_dentry*)data_addr)->name, get_last_part(path)) == 0) {
+            // record the inode number
+            finode = ((struct wfs_dentry*)data_addr)->inode_number;
+            break;
+        }
+        data_addr += sizeof(struct wfs_dentry);
+    }
+
+    // Iterate over the log
+    char* curr = base;
+
+    curr += sizeof(struct wfs_sb); // skip past superblock
+
+    // Search for log_entry with corresponding inode
+    while(curr != head) {
+        struct wfs_log_entry* curr_log_entry = (struct wfs_log_entry*)curr;
+
+        // If not deleted
+        if (curr_log_entry->inode.deleted == 0){
+            // File found
+            if (curr_log_entry->inode.inode_number == finode){
+                return curr_log_entry;
+            }
+        }
+
+        curr += curr_log_entry->inode.size;
+    }
+
+    return NULL;
+}
+
 // Check if filename contains valid characters
 // TODO check length as well?
 int valid_name(const char *filename) {
@@ -252,7 +252,7 @@ int valid_name(const char *filename) {
 }
 
 // Check if file/subdir can be created -- validate name and (local) uniqueness
-int can_create(char *path){
+int can_create(const char *path){
     char* last_part = get_last_part(path);
 
     // TODO is the below necessary?
@@ -273,7 +273,7 @@ int can_create(char *path){
     char* data_addr = parent->data;
 
     // iterate over all dentry's of parent
-    while(data_addr != (parent + parent->inode.size)) {
+    while(data_addr != (char*)(parent + parent->inode.size)) {
         // check if current dentry matches desired filename
         if (strcmp(((struct wfs_dentry*)data_addr)->name, last_part) == 0) return 0;
         data_addr += sizeof(struct wfs_dentry);
@@ -308,7 +308,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf) {
 }
 
 // Function to create a regular file
-static int wfs_mknod(const char *path, mode_t mode) {
+static int wfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     // char full_path[PATH_MAX];
     // get_full_path(path, full_path);
 
@@ -479,8 +479,8 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
-    struct wfs_log_entry* f = getFile(path);
-    int data_size = f->inode.size - (uint)(f->data);
+    struct wfs_log_entry* f = get_log_entry(path);
+    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if offset is too large
     if (offset >= data_size) return 0;
@@ -494,10 +494,45 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
-    struct wfs_log_entry* f = getFile(path);
-    int data_size = f->inode.size - (uint)(f->data);
-    if (((uint) f->data) + offset + size)
-    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + new_size);
+    struct wfs_log_entry* f = get_log_entry(path);
+
+    // end of log entry - start of data field
+    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
+
+    // Check if write exceeds current size of file data
+    // TODO check if the write would exceed disk size?
+    if ( (f->data + offset + size) >= (f->data + data_size) ){
+        // Set data_size to incorporate extra data
+        ptrdiff_t diff = (f->data + offset + size) - f->data;
+        data_size = (int) diff;
+    }
+
+    // allocate memory for a log entry copy
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + data_size);
+
+    // memcpy old log into copy
+    memcpy(log_entry_copy, f, f->inode.size);
+    
+    // mark old log entry as deleted
+    f->inode.deleted = 1;
+
+    // write buffer to offset of data
+    memcpy(log_entry_copy->data + offset, buf, size);
+
+    // change size field of new entry to be updated size
+    log_entry_copy->inode.size = data_size;
+
+    // update modify time
+    log_entry_copy->inode.atime = time(NULL);
+    log_entry_copy->inode.mtime = time(NULL); // modify vs change?
+
+    // add log entry to head
+    memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+    // update head
+    head += log_entry_copy->inode.size;
+
+    return size;
 }
 
 // Function to read directory entries
@@ -509,7 +544,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while(data_addr != (dir_log_entry + dir_log_entry->inode.size)) {
+    while(data_addr != (char*)(dir_log_entry + dir_log_entry->inode.size)) {
         struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;
 
         size_t len1 = strlen(path);
@@ -521,7 +556,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 
         if (total_path == NULL) {
             // Handle memory allocation failure
-            return NULL;
+            return -1;
         }
 
         // Copy the contents of the original strings to the new string

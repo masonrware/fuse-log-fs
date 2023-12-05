@@ -558,7 +558,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 
         if (total_path == NULL) {
             // Handle memory allocation failure
-            return NULL;
+            return -1;
         }
 
         // Copy the contents of the original strings to the new string

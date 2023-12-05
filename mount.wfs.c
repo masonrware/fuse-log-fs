@@ -482,7 +482,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
     struct wfs_log_entry* f = get_log_entry(path);
-    int data_size = f->inode.size - (uint)(f->data);
+    int data_size = ((int) f) + f->inode.size - (int)(f->data);
 
     // Check if offset is too large
     if (offset >= data_size) return 0;

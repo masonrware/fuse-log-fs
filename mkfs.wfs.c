@@ -32,7 +32,8 @@ void initialize_filesystem(const char *disk_path) {
 
     // Check for errors in mmap
     if (base == MAP_FAILED) {
-        return -1;
+        printf("mmap failed\n");
+        exit(0);
     }
 
     // initialize the superblock

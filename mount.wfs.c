@@ -505,7 +505,8 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     // TODO check if the write would exceed disk size?
     if ( (f->data + offset + size) >= (f->data + data_size) ){
         // Set data_size to incorporate extra data
-        data_size = (((uint) f->data) + offset + size) - ((uint) f->data);
+        ptrdiff_t diff = (f->data + offset + size) - f->data;
+        data_size = (int) diff;
     }
 
     // allocate memory for a log entry copy

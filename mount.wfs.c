@@ -494,15 +494,19 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
-    struct wfs_log_entry* f = get_log_entry(path, 0);
-    int data_size = f->inode.size - (uint)(f->data);
+    struct wfs_log_entry* f = get_log_entry(path);
+
+    // end of log entry - start of data field
+    int data_size = ((uint) f) + f->inode.size - (uint)(f->data);
 
     // Check if write exceeds current size of file data
+    // TODO check if the write would exceed disk size?
     if ( (((uint) f->data) + offset + size) >= (((uint) f->data) + data_size) ){
         // Set data_size to incorporate extra data
         data_size = (((uint) f->data) + offset + size) - ((uint) f->data);
     }
 
+    // allocate memory for a log entry copy
     struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(sizeof(struct wfs_log_entry) + data_size);
 
     // memcpy old log into copy
@@ -512,10 +516,19 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     f->inode.deleted = 1;
 
     // write buffer to offset of data
-    memcpy(f->data, )
+    memcpy(log_entry_copy->data + offset, buf, size);
+
     // change size field of new entry to be updated size
+    log_entry_copy->inode.size = data_size;
+
+    // update modify time
+    log_entry_copy->inode.mtime = time(NULL);
+
     // add log entry to head
+    memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
     // update head
+    head += log_entry_copy->inode.size;
 
 }
 

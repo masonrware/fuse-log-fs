@@ -509,7 +509,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) {
+    while(data_addr != (dir_log_entry + dir_log_entry->inode.size)) {
         struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;
 
         size_t len1 = strlen(path);
@@ -562,17 +562,63 @@ static int wfs_unlink(const char *path) {
     // TODO mark the above log entry as deleted (and update atime, and other time)
     // TODO make an updated copy of the parent log entry and remove the dentry -- updating size by subtracting and updating head by updating
     
-    struct wfs_log_entry* parent_dir_log_entry = get_parent_log_entry(path, 0);
-    parent_dir_log_entry->inode.atime = time(NULL);
+    struct wfs_log_entry* parent_log_entry = get_parent_log_entry(path, 0);
+    parent_log_entry->inode.atime = time(NULL);
 
     // mark parent as deleted
-    parent_dir_log_entry->inode.deleted = 1;
+    parent_log_entry->inode.deleted = 1;
 
-    // TODO we could be unlinking a directory?
-    struct wfs_log_entry* dir_log_entry = get_log_entry(path);
-    dir_log_entry->inode.atime = time(NULL);
+    struct wfs_log_entry* log_entry = get_log_entry(path);
+    log_entry->inode.atime = time(NULL);
 
-    char *data_addr = dir_log_entry->data;
+    // mark file log entry as deleted
+    log_entry->inode.deleted = 1;
+    // decrement inode links count
+    log_entry->inode.links -= 1;
+
+    // Make a copy of the old parent log entry and remove the files dentry from
+    struct wfs_log_entry* log_entry_copy = (struct wfs_log_entry*)malloc(parent_log_entry->inode.size - sizeof(struct wfs_dentry));
+    if (log_entry_copy != NULL) {
+        // find the address offset of the dentry for this file
+        char *data_addr = parent_log_entry->data;
+        // iterate over all dentry's
+        while(data_addr != parent_log_entry+parent_log_entry->inode.size) {
+            // check the inode number against the target log entry (deleted file)
+            if(((struct wfs_dentry*)data_addr)->inode_number == log_entry->inode.inode_number) {
+                break;
+            }
+            data_addr += sizeof(struct wfs_dentry);
+        }
+
+        // memcpy up to data addr
+        memcpy(log_entry_copy, parent_log_entry, data_addr - parent_log_entry);
+        // TODO update size
+        // log_entry_copy->inode.size;
+        // memcpy after the deleted dentry -- if this check hits it means the deleted file was the last dentry of the parent log entry
+        if(data_addr != parent_log_entry->inode.size - sizeof(struct wfs_dentry)) {
+            // memcpy from (a dentry length after data addr) of size (difference between old parents end address minus the size of a dentry after the data addr) to the address of the new log entry plus the distance of the data addr)
+            memcpy(log_entry_copy+(data_addr - parent_log_entry), data_addr+sizeof(struct wfs_dentry), (parent_log_entry+parent_log_entry->inode.size)-(data_addr+sizeof(struct wfs_dentry)));
+        }
+
+
+
+        // copy the entire old log entry (including it's data field) to the new log entry
+        memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
+        // TODO is this redundant?
+        log_entry_copy->inode.size = old_log_entry->inode.size;
+
+        // add the dentry to log_entry_copy's data and update new log entry's size
+        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        log_entry_copy->inode.size += sizeof(struct wfs_dentry);
+
+        // write the log entry copy to the log
+        memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update the head
+        head += log_entry_copy->inode.size;
+    } else {
+        // Handle allocation failure
+    }
 }
 
 static struct fuse_operations my_operations = {

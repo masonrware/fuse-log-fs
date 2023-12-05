@@ -503,7 +503,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
     // Check if write exceeds current size of file data
     // TODO check if the write would exceed disk size?
-    if ( (((uint) f->data) + offset + size) >= (((uint) f->data) + data_size) ){
+    if ( (f->data + offset + size) >= (f->data + data_size) ){
         // Set data_size to incorporate extra data
         data_size = (((uint) f->data) + offset + size) - ((uint) f->data);
     }
@@ -524,7 +524,8 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     log_entry_copy->inode.size = data_size;
 
     // update modify time
-    log_entry_copy->inode.mtime = time(NULL);
+    log_entry_copy->inode.atime = time(NULL);
+    log_entry_copy->inode.mtime = time(NULL); // modify vs change?
 
     // add log entry to head
     memcpy(head, log_entry_copy, log_entry_copy->inode.size);

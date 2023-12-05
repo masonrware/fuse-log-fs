@@ -534,15 +534,14 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-    // TODO treat offset as raw bytes into data field of log entry
-
     struct wfs_log_entry* dir_log_entry = get_log_entry(path);
     dir_log_entry->inode.atime = time(NULL);
 
-    char *data_addr = dir_log_entry->data;
+    // incorporate offset as multiple of dentry's
+    char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) { // (dir_log_entry + dir_log_entry->inode.size)
+    while(data_addr != (dir_log_entry->data + dir_log_entry->inode.size)) {
         struct wfs_dentry* curr_dentry = (struct wfs_dentry*)data_addr;
 
         size_t len1 = strlen(path);
@@ -559,7 +558,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 
         // Copy the contents of the original strings to the new string
         strcpy(total_path, path);
-        strcpy(total_path + len1, curr_dentry->name);       // null terminator?
+        strcpy(total_path + len1, curr_dentry->name);
 
         // Treat all paths as a file path (arg 2 is 0) because I can't tell whether the dentry is a dir or file
         struct wfs_log_entry* curr_log_entry = get_log_entry(total_path);
@@ -577,8 +576,8 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
         stbuf.st_nlink = curr_log_entry->inode.links;
         stbuf.st_size = curr_log_entry->inode.size;
         
-        offset += sizeof(struct wfs_dentry);    // keep offset as 0?
-        if(filler(buf, curr_dentry->name, &stbuf, offset) != 0) {   // is filler assumed to be provided?
+        offset += sizeof(struct wfs_dentry);
+        if(filler(buf, curr_dentry->name, &stbuf, offset) != 0) {
             return 0;
         }
 

@@ -159,6 +159,40 @@ static struct wfs_log_entry* get_parent_log_entry(const char *path, int inode_nu
     return NULL;
 }
 
+// Get filename from a path
+char* get_last_part(const char* path) {
+    if (path == NULL || strlen(path) == 0) {
+        // Handle invalid input
+        return NULL;
+    }
+
+    // Find the last occurrence of '/'
+    const char* last_slash = strrchr(path, '/');
+    if (last_slash == NULL) {
+        // No '/' found in the path, return a copy of the input path
+        return strdup(path);
+    }
+
+    // Move the pointer after the last slash
+    last_slash += 1;
+
+    // Calculate the length of the filename
+    size_t last_part_length = strlen(last_slash);
+
+    // Allocate memory for the filename
+    char* last_part = (char*)malloc((last_part_length + 1) * sizeof(char));
+    if (last_part == NULL) {
+        // Memory allocation failed
+        perror("Memory allocation error");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the filename into the new string
+    strcpy(last_part, last_slash);
+
+    return last_part;
+}
+
 // Get a log entry for a file/subdir given a path
 static struct wfs_log_entry* get_log_entry(const char *path) {
     int finode;
@@ -202,39 +236,7 @@ static struct wfs_log_entry* get_log_entry(const char *path) {
     return NULL;
 }
 
-// Get filename from a path
-char* get_last_part(const char* path) {
-    if (path == NULL || strlen(path) == 0) {
-        // Handle invalid input
-        return NULL;
-    }
 
-    // Find the last occurrence of '/'
-    const char* last_slash = strrchr(path, '/');
-    if (last_slash == NULL) {
-        // No '/' found in the path, return a copy of the input path
-        return strdup(path);
-    }
-
-    // Move the pointer after the last slash
-    last_slash += 1;
-
-    // Calculate the length of the filename
-    size_t last_part_length = strlen(last_slash);
-
-    // Allocate memory for the filename
-    char* last_part = (char*)malloc((last_part_length + 1) * sizeof(char));
-    if (last_part == NULL) {
-        // Memory allocation failed
-        perror("Memory allocation error");
-        exit(EXIT_FAILURE);
-    }
-
-    // Copy the filename into the new string
-    strcpy(last_part, last_slash);
-
-    return last_part;
-}
 
 // Check if filename contains valid characters
 // TODO check length as well?
@@ -479,7 +481,7 @@ static int wfs_mkdir(const char *path, mode_t mode) {
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     // Grab log entry for desired file
-    struct wfs_log_entry* f = getFile(path);
+    struct wfs_log_entry* f = get_log_entry(path);
     int data_size = f->inode.size - (uint)(f->data);
 
     // Check if offset is too large

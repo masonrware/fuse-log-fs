@@ -254,7 +254,7 @@ int valid_name(const char *filename) {
 }
 
 // Check if file/subdir can be created -- validate name and (local) uniqueness
-int can_create(char *path){
+int can_create(const char *path){
     char* last_part = get_last_part(path);
 
     // TODO is the below necessary?

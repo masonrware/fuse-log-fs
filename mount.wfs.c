@@ -279,7 +279,7 @@ int can_create(const char *path)
 ////// BELOW IS FOR FUSE ///////
 
 // Function to get attributes of a file or directory
-static int wfs_getattr(const char *path, struct stat *stbuf)
+int wfs_getattr(const char *path, struct stat *stbuf)
 {
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
@@ -306,7 +306,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 }
 
 // Function to create a regular file
-static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
+int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
     path = remove_pre_mount(path);
 
@@ -425,7 +425,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 }
 
 // Function to create a directory
-static int wfs_mkdir(const char *path, mode_t mode)
+int wfs_mkdir(const char *path, mode_t mode)
 {
     path = remove_pre_mount(path);
 
@@ -543,7 +543,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
 }
 
 // Function to read data from a file
-static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     path = remove_pre_mount(path);
 
@@ -568,7 +568,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 }
 
 // Function to write data to a file
-static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     path = remove_pre_mount(path);
 
@@ -630,7 +630,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 }
 
 // Function to read directory entries
-static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
     path = remove_pre_mount(path);
 
@@ -702,7 +702,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 }
 
 // Function to unlink (delete) a file
-static int wfs_unlink(const char *path)
+int wfs_unlink(const char *path)
 {
     path = remove_pre_mount(path);
 
@@ -794,7 +794,7 @@ static int wfs_unlink(const char *path)
     return 0;
 }
 
-static struct fuse_operations my_operations = {
+struct fuse_operations my_operations = {
     .getattr = wfs_getattr,
     .mknod = wfs_mknod,
     .mkdir = wfs_mkdir,

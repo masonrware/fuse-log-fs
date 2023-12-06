@@ -872,6 +872,9 @@ int main(int argc, char *argv[])
     argv[argc-2] = argv[argc-1];
     argv[argc-1] = NULL;
     argc--;
+    for (int i = 0; i < argc; i++){
+        printf("Arg %d: %s\n", i, argv[i]);
+    }
 
 
     // printf("Args: %s\n", argv);

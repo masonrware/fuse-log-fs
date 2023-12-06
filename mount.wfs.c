@@ -538,6 +538,38 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    // MASON'S ALTERNATIVE:
+
+    //// Find old log entry
+    // struct wfs_log_entry *old_log_entry = get_log_entry(path);
+
+    // // TODO is there a limit on how much write can be made?
+
+    // // Create a copy of the old log entry (assuming offset is raw number of bytes)
+    // struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + (offset+size));
+    // // memcpy old log entry into copy
+    // memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
+
+    // // mark old log entry as deleted
+    // old_log_entry->inode.deleted = 1;
+
+    // // write buffer to new log entry
+    // memcpy(log_entry_copy->data+offset, buf, size);
+    //// update modify time
+    // log_entry_copy->inode.atime = time(NULL);
+
+    // // update log entry copy's size
+    // log_entry_copy->inode.size += offset+size;
+
+    // // write the log entry copy to the head of the log
+    // memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+    // // update the head
+    // head += log_entry_copy->inode.size;
+
+    // return 0;
+
+
     // Grab log entry for desired file
     struct wfs_log_entry *f = get_log_entry(path);
 
@@ -545,7 +577,6 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if write exceeds current size of file data
-    // TODO check if the write would exceed disk size?
     if ((f->data + offset + size) >= (f->data + data_size))
     {
         // Set data_size to incorporate extra data
@@ -566,7 +597,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     memcpy(log_entry_copy->data + offset, buf, size);
 
     // change size field of new entry to be updated size
-    log_entry_copy->inode.size = data_size;
+    log_entry_copy->inode.size += data_size;
 
     // update modify time
     log_entry_copy->inode.atime = time(NULL);

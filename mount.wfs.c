@@ -30,7 +30,7 @@ struct wfs_inode root_inode;
 struct wfs_log_entry root_log_entry;
 
 // Remove the top-most (left most) extension of a path
-char *snip_top_level(const char *path)
+static char *snip_top_level(const char *path)
 {
     if (path == NULL || strlen(path) == 0)
     {
@@ -73,7 +73,7 @@ char *snip_top_level(const char *path)
 }
 
 // Remove the bottom-most (right most) extension of a path
-char *snip_bottom_level(const char *path)
+static char *snip_bottom_level(const char *path)
 {
    if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
@@ -101,7 +101,7 @@ char *snip_bottom_level(const char *path)
 
 // Same as snip_bottom_level, just returns the final part of the path instead of the path itself
 // Get bottom-level (right most) extention of a path
-char *get_bottom_level(const char *path)
+static char *get_bottom_level(const char *path)
 {
     if (path == NULL || strlen(path) == 0)
     {
@@ -185,7 +185,7 @@ static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 }
 
 // Remove any pre-mount portion (including the mount point) of a path
-char *remove_pre_mount(const char *path)
+static char *remove_pre_mount(const char *path)
 {
     if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
@@ -228,7 +228,7 @@ char *remove_pre_mount(const char *path)
 
 // Check if filename contains valid characters
 // TODO check length as well?
-int valid_name(const char *filename)
+static int valid_name(const char *filename)
 {
     while (*filename != '\0')
     {
@@ -245,7 +245,7 @@ int valid_name(const char *filename)
 }
 
 // Check if file/subdir can be created -- validate name and (local) uniqueness
-int can_create(const char *path)
+static int can_create(const char *path)
 {
     char *last_part = get_bottom_level(path);
 
@@ -879,9 +879,9 @@ int main(int argc, char *argv[])
     // Call fuse_main with your FUSE operations and data
     printf("Pre fuse main\n");
     return fuse_main(argc, argv, &my_operations, NULL);
-    // printf("Post fuse main\n");
-    // munmap(base, file_stat.st_size);
-    // printf("Post fuse munmap\n");
+    printf("Post fuse main\n");
+    munmap(base, file_stat.st_size);
+    printf("Post fuse munmap\n");
 
-    // return 0;
+    return 0;
 }

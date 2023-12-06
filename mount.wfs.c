@@ -16,21 +16,21 @@
 #include <time.h>
 #include "wfs.h"
 
-int inode_count = 0;
-int total_size;
+static int inode_count = 0;
+static int total_size;
 
 static char *disk_path;
 static char *mount_point;
 
-char *head;
-char *base;
-struct wfs_sb *superblock;
+static char *head;
+static char *base;
+static struct wfs_sb *superblock;
 
-struct wfs_inode root_inode;
-struct wfs_log_entry root_log_entry;
+static struct wfs_inode root_inode;
+static struct wfs_log_entry root_log_entry;
 
 // Remove the top-most (left most) extension of a path
-char *snip_top_level(const char *path)
+static char *snip_top_level(const char *path)
 {
     if (path == NULL || strlen(path) == 0)
     {
@@ -73,7 +73,7 @@ char *snip_top_level(const char *path)
 }
 
 // Remove the bottom-most (right most) extension of a path
-char *snip_bottom_level(const char *path)
+static char *snip_bottom_level(const char *path)
 {
    if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
@@ -101,7 +101,7 @@ char *snip_bottom_level(const char *path)
 
 // Same as snip_bottom_level, just returns the final part of the path instead of the path itself
 // Get bottom-level (right most) extention of a path
-char *get_bottom_level(const char *path)
+static char *get_bottom_level(const char *path)
 {
     if (path == NULL || strlen(path) == 0)
     {
@@ -185,7 +185,7 @@ static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 }
 
 // Remove any pre-mount portion (including the mount point) of a path
-char *remove_pre_mount(const char *path)
+static char *remove_pre_mount(const char *path)
 {
     if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
@@ -228,7 +228,7 @@ char *remove_pre_mount(const char *path)
 
 // Check if filename contains valid characters
 // TODO check length as well?
-int valid_name(const char *filename)
+static int valid_name(const char *filename)
 {
     while (*filename != '\0')
     {
@@ -245,7 +245,7 @@ int valid_name(const char *filename)
 }
 
 // Check if file/subdir can be created -- validate name and (local) uniqueness
-int can_create(const char *path)
+static int can_create(const char *path)
 {
     char *last_part = get_bottom_level(path);
 
@@ -809,11 +809,13 @@ static struct fuse_operations my_operations = {
 
 int main(int argc, char *argv[])
 {
+    printf("Start of main\n");
     if (argc < 4)
     {
         fprintf(stderr, "Usage: %s [FUSE options] disk_path mount_point\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+    printf("Argc check\n");
 
     // Parse disk_path and mount_point from the command line arguments
     disk_path = argv[argc - 2];
@@ -864,12 +866,22 @@ int main(int argc, char *argv[])
     // int fuse_argc = argc - 2; // Adjust argc for FUSE options
     // char **fuse_argv = argv + 1;
 
-    // Disable multi-threading with -s option
+    // // Disable multi-threading with -s option
     // fuse_argv[0] = "-s";
 
+    argv[argc-2] = argv[argc-1];
+    argv[argc-1] = NULL;
+    argc--;
+
+
+    // printf("Args: %s\n", argv);
+    
     // Call fuse_main with your FUSE operations and data
-    fuse_main(argc, argv, &my_operations, NULL);
+    printf("Pre fuse main\n");
+    return fuse_main(argc, argv, &my_operations, NULL);
+    printf("Post fuse main\n");
     munmap(base, file_stat.st_size);
+    printf("Post fuse munmap\n");
 
     return 0;
 }

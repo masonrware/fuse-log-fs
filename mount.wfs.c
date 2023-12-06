@@ -871,7 +871,7 @@ int main(int argc, char *argv[])
 
     argv[argc-2] = argv[argc-1];
     argv[argc-1] = NULL;
-    argc-=2;
+    argc--;
 
 
     // printf("Args: %s\n", argv);

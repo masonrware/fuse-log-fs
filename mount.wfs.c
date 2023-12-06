@@ -796,6 +796,6 @@ int main(int argc, char *argv[])
 
     // Call fuse_main with your FUSE operations and data
     fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);
-    //unmap here
+    munmap(base, file_stat.st_size);
     return 0;
 }

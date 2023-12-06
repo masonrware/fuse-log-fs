@@ -861,8 +861,8 @@ int main(int argc, char *argv[])
     head = (char *)&superblock->head;
 
     // FUSE options are passed to fuse_main, starting from argv[1]
-    int fuse_argc = argc - 2; // Adjust argc for FUSE options
-    char **fuse_argv = argv + 1;
+    // int fuse_argc = argc - 2; // Adjust argc for FUSE options
+    // char **fuse_argv = argv + 1;
 
     // Disable multi-threading with -s option
     // fuse_argv[0] = "-s";

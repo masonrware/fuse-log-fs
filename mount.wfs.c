@@ -175,6 +175,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
                     {
                         printf("177\n");
+                        printf("%p %p %d\n", data_addr, curr_log_entry, curr_log_entry->inode.size);
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {

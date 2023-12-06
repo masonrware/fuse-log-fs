@@ -279,8 +279,10 @@ int can_create(const char *path)
 ////// BELOW IS FOR FUSE ///////
 
 // Function to get attributes of a file or directory
-int wfs_getattr(const char *path, struct stat *stbuf)
+static int wfs_getattr(const char *path, struct stat *stbuf)
 {
+    printf("getattr\n");
+
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
@@ -306,8 +308,10 @@ int wfs_getattr(const char *path, struct stat *stbuf)
 }
 
 // Function to create a regular file
-int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
+static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
+    printf("mknod\n");
+
     path = remove_pre_mount(path);
 
     // Verify filename
@@ -425,8 +429,10 @@ int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 }
 
 // Function to create a directory
-int wfs_mkdir(const char *path, mode_t mode)
+static int wfs_mkdir(const char *path, mode_t mode)
 {
+    printf("mkdir\n");
+
     path = remove_pre_mount(path);
 
 
@@ -543,8 +549,10 @@ int wfs_mkdir(const char *path, mode_t mode)
 }
 
 // Function to read data from a file
-int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    printf("read\n");
+
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -568,8 +576,10 @@ int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse
 }
 
 // Function to write data to a file
-int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    printf("write\n");
+
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -630,8 +640,10 @@ int wfs_write(const char *path, const char *buf, size_t size, off_t offset, stru
 }
 
 // Function to read directory entries
-int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
+    printf("readdir\n");
+
     path = remove_pre_mount(path);
 
     struct wfs_log_entry *dir_log_entry = get_log_entry(path, 0);
@@ -702,8 +714,10 @@ int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offse
 }
 
 // Function to unlink (delete) a file
-int wfs_unlink(const char *path)
+static int wfs_unlink(const char *path)
 {
+    printf("unlink\n");
+
     path = remove_pre_mount(path);
 
     // get parent log entry
@@ -794,7 +808,7 @@ int wfs_unlink(const char *path)
     return 0;
 }
 
-struct fuse_operations my_operations = {
+static struct fuse_operations my_operations = {
     .getattr = wfs_getattr,
     .mknod = wfs_mknod,
     .mkdir = wfs_mkdir,
@@ -839,7 +853,6 @@ int main(int argc, char *argv[])
 
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
-    close(fd);
     // Check for errors in mmap
     if (base == MAP_FAILED)
     {

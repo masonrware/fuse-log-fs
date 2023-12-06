@@ -822,7 +822,7 @@ int main(int argc, char *argv[])
     int fd;
 
     // Open file descriptor for file to init system with
-    fd = open(disk_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    fd = open(disk_path, O_RDWR, 0666);
     if (fd == -1)
     {
         perror("Error opening file");

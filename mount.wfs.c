@@ -133,40 +133,52 @@ char *get_bottom_level(const char *path)
 // Get the log entry of the bottom-level (right most) extension of a path recursively
 struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 {
+    printf("135\n");
     char *curr = base;
 
     // iterate past the superblock
     curr += sizeof(struct wfs_sb);
+    printf("141\n");
     while (curr != head)
     {
+        printf("144\n");
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
         // if the thing is not deleted
+        printf("147\n");
         if (curr_log_entry->inode.deleted != 1)
         {
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
+                printf("153\n");
                 // base case -- either "" or "/"
                 if (path == NULL)
                 {
+                    printf("157\n");
                     return curr_log_entry;
                 }
                 else
                 {
+                    printf("162\n");
                     char path_copy[100];
                     strcpy(path_copy, path);
 
+                    printf("166\n");
                     // Use strtok to get the first token
                     char *ancestor = strtok(path_copy, "/");
 
+                    printf("170\n");
                     char *data_addr = curr_log_entry->data;
 
+                    printf("173\n");
                     // iterate over all dentries
                     while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
                     {
+                        printf("177\n");
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
+                            printf("181\n");
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
@@ -174,6 +186,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                 }
             }
         }
+        printf("189\n");
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
     }
@@ -283,13 +296,10 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 {
     printf("getattr\n");
 
-    printf("286\n");
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
-    printf("290\n");
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
-    printf("292\n");
 
     if(log_entry == NULL) {
         printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);

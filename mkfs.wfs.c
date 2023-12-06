@@ -15,7 +15,7 @@ void initialize_filesystem(const char *disk_path) {
     int fd;
 
     // Open file descriptor for file to init system with
-    fd = open(disk_path, O_WRONLY | O_CREAT, 0666);
+    fd = open(disk_path, O_WRONLY);
     if (fd == -1) {
         perror("Error opening file");
         exit(EXIT_FAILURE);

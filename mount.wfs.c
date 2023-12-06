@@ -839,7 +839,7 @@ int main(int argc, char *argv[])
 
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
-
+    close(fd);
     // Check for errors in mmap
     if (base == MAP_FAILED)
     {

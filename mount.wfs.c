@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
     argc--;
 
 
-    printf("Args: %s\n", argv);
+    // printf("Args: %s\n", argv);
     
     // Call fuse_main with your FUSE operations and data
     printf("Pre fuse main\n");

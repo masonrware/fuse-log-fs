@@ -531,6 +531,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
     // end of log entry - start of data field
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
+    log_entry_copy->inode.atime = time(NULL);
 
     // Check if write exceeds current size of file data
     if ((f->data + offset + size) >= (f->data + data_size))
@@ -538,6 +539,12 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
         // Set data_size to incorporate extra data
         ptrdiff_t diff = (f->data + offset + size) - f->data;
         data_size = (int)diff;
+    }
+
+    // Check if write wwould exceed disk space
+    if ((total_size + sizeof(struct wfs_log_entry) + data_size) > MAX_SIZE){
+        printf("Insufficient disk space\n");
+        return -ENOSPC;
     }
 
     // allocate memory for a log entry copy
@@ -556,8 +563,8 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     log_entry_copy->inode.size += data_size;
 
     // update modify time
-    log_entry_copy->inode.atime = time(NULL);
-    log_entry_copy->inode.mtime = time(NULL); // modify vs change?
+    log_entry_copy->inode.ctime = time(NULL);
+    log_entry_copy->inode.mtime = time(NULL);
 
     // add log entry to head
     memcpy(head, log_entry_copy, log_entry_copy->inode.size);

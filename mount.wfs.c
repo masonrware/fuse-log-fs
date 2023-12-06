@@ -17,6 +17,7 @@
 #include "wfs.h"
 
 int inode_count = 0;
+// int total_size = 0;
 
 static char *disk_path;
 static char *mount_point;
@@ -394,6 +395,9 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         // add the dentry to log_entry_copy's data and update new log entry's size
         memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
+
+        // update total size
+        total_size += log_entry_copy->inode.size;
 
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
@@ -780,6 +784,6 @@ int main(int argc, char *argv[])
     // Call fuse_main with your FUSE operations and data
     fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);
     munmap(base, file_stat.st_size);
-    
+
     return 0;
 }

@@ -26,9 +26,6 @@ char *head;
 char *base;
 struct wfs_sb *superblock;
 
-struct wfs_inode root_inode;
-struct wfs_log_entry root_log_entry;
-
 // Remove the top-most (left most) extension of a path
 char *snip_top_level(const char *path)
 {
@@ -136,40 +133,53 @@ char *get_bottom_level(const char *path)
 // Get the log entry of the bottom-level (right most) extension of a path recursively
 struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 {
+    printf("135\n");
     char *curr = base;
 
     // iterate past the superblock
     curr += sizeof(struct wfs_sb);
+    printf("141\n");
     while (curr != head)
     {
+        printf("144\n");
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
         // if the thing is not deleted
+        printf("147\n");
         if (curr_log_entry->inode.deleted != 1)
         {
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
+                printf("153\n");
                 // base case -- either "" or "/"
                 if (path == NULL)
                 {
+                    printf("157\n");
                     return curr_log_entry;
                 }
                 else
                 {
+                    printf("162\n");
                     char path_copy[100];
                     strcpy(path_copy, path);
 
+                    printf("166\n");
                     // Use strtok to get the first token
                     char *ancestor = strtok(path_copy, "/");
 
+                    printf("170\n");
                     char *data_addr = curr_log_entry->data;
 
+                    printf("173\n");
                     // iterate over all dentries
                     while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
                     {
+                        printf("177\n");
+                        printf("%p %p %d\n", data_addr, curr_log_entry, curr_log_entry->inode.size);
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
+                            printf("181\n");
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
@@ -177,6 +187,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                 }
             }
         }
+        printf("189\n");
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
     }
@@ -284,6 +295,8 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
+    printf("getattr\n");
+
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
@@ -311,6 +324,8 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 // Function to create a regular file
 static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
+    printf("mknod\n");
+
     path = remove_pre_mount(path);
 
     // Verify filename
@@ -430,6 +445,8 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 // Function to create a directory
 static int wfs_mkdir(const char *path, mode_t mode)
 {
+    printf("mkdir\n");
+
     path = remove_pre_mount(path);
 
 
@@ -548,6 +565,8 @@ static int wfs_mkdir(const char *path, mode_t mode)
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    printf("read\n");
+
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -573,6 +592,8 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    printf("write\n");
+
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -635,6 +656,8 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
+    printf("readdir\n");
+
     path = remove_pre_mount(path);
 
     struct wfs_log_entry *dir_log_entry = get_log_entry(path, 0);
@@ -707,6 +730,8 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 // Function to unlink (delete) a file
 static int wfs_unlink(const char *path)
 {
+    printf("unlink\n");
+
     path = remove_pre_mount(path);
 
     // get parent log entry
@@ -842,7 +867,6 @@ int main(int argc, char *argv[])
 
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
-
     // Check for errors in mmap
     if (base == MAP_FAILED)
     {
@@ -872,9 +896,6 @@ int main(int argc, char *argv[])
     argv[argc-2] = argv[argc-1];
     argv[argc-1] = NULL;
     argc--;
-    for (int i = 0; i < argc; i++){
-        printf("Arg %d: %s\n", i, argv[i]);
-    }
 
 
     // printf("Args: %s\n", argv);

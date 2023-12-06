@@ -878,10 +878,10 @@ int main(int argc, char *argv[])
     
     // Call fuse_main with your FUSE operations and data
     printf("Pre fuse main\n");
-    fuse_main(argc, argv, &my_operations, NULL);
-    printf("Post fuse main\n");
-    munmap(base, file_stat.st_size);
-    printf("Post fuse munmap\n");
+    return fuse_main(argc, argv, &my_operations, NULL);
+    // printf("Post fuse main\n");
+    // munmap(base, file_stat.st_size);
+    // printf("Post fuse munmap\n");
 
-    return 0;
+    // return 0;
 }

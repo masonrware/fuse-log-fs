@@ -361,11 +361,11 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
 
-        // update total size
-        total_size += log_entry_copy->inode.size;
-
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update total size count
+        total_size += log_entry_copy->inode.size;
 
         // update the head
         head += log_entry_copy->inode.size;
@@ -389,6 +389,9 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
         // add log entry to the log
         memcpy(head, new_log_entry, new_log_entry->inode.size);
+
+        // update total size count
+        total_size += new_log_entry->inode.size;
 
         // update the head
         head += new_log_entry->inode.size;
@@ -459,6 +462,9 @@ static int wfs_mkdir(const char *path, mode_t mode)
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
 
+        // update total size count
+        total_size += log_entry_copy->inode.size;
+
         // update the head
         head += log_entry_copy->inode.size;
     }
@@ -481,6 +487,9 @@ static int wfs_mkdir(const char *path, mode_t mode)
 
         // add log entry to the log
         memcpy(head, new_log_entry, new_log_entry->inode.size);
+
+        // update total size count
+        total_size += new_log_entry->inode.size;
 
         // update the head
         head += new_log_entry->inode.size;
@@ -552,6 +561,9 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
     // add log entry to head
     memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+    // update total size count
+    total_size += log_entry_copy->inode.size;
 
     // update head
     head += log_entry_copy->inode.size;
@@ -679,6 +691,9 @@ static int wfs_unlink(const char *path)
 
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update total size count
+        total_size += log_entry_copy->inode.size;
 
         // update the head
         head += log_entry_copy->inode.size;

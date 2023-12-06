@@ -16,8 +16,8 @@
 #include <time.h>
 #include "wfs.h"
 
-static int inode_count = 0;
-static int total_size;
+int inode_count = 0;
+int total_size;
 
 static char *disk_path;
 static char *mount_point;
@@ -25,9 +25,6 @@ static char *mount_point;
 static char *head;
 static char *base;
 static struct wfs_sb *superblock;
-
-static struct wfs_inode root_inode;
-static struct wfs_log_entry root_log_entry;
 
 // Remove the top-most (left most) extension of a path
 static char *snip_top_level(const char *path)

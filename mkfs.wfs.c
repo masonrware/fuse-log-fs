@@ -9,6 +9,8 @@
 #include <time.h>
 #include "wfs.h"
 
+int total_size = 0;
+
 void initialize_filesystem(const char *disk_path) {
     int fd;
 
@@ -71,7 +73,8 @@ void initialize_filesystem(const char *disk_path) {
 
     // Update the head to be after the added root log entry
     superblock->head += root_log_entry_size;
-    
+    total_size += root_log_entry_size + sizeof(struct wfs_sb);
+
     // write to disk
     munmap(base, file_stat.st_size);
 

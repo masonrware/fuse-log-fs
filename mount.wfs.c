@@ -17,6 +17,7 @@
 #include "wfs.h"
 
 int inode_count = 0;
+int total_size;
 
 static char *disk_path;
 static char *mount_point;
@@ -349,10 +350,18 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     // Get parent directory log entry
     struct wfs_log_entry *old_log_entry = get_log_entry(snip_bottom_level(path), 0);
 
+    // perform size bounds checking
+    // current size + size of copy of parent + size of new log entry
+    if ((total_size + old_log_entry->inode.size + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
+        printf("Insufficient Disk Space to Perform Operation.\n");
+        return -ENOSPC;
+    }
+
     // Make a copy of the old log entry and add the created dentry to its data field
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
+
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
 
@@ -362,6 +371,9 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update total size count
+        total_size += log_entry_copy->inode.size;
 
         // update the head
         head += log_entry_copy->inode.size;
@@ -385,6 +397,9 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
         // add log entry to the log
         memcpy(head, new_log_entry, new_log_entry->inode.size);
+
+        // update total size count
+        total_size += new_log_entry->inode.size;
 
         // update the head
         head += new_log_entry->inode.size;
@@ -441,6 +456,13 @@ static int wfs_mkdir(const char *path, mode_t mode)
     // Get parent directory log entry
     struct wfs_log_entry *old_log_entry = get_log_entry(snip_bottom_level(path), 0);
 
+    // perform size bounds checking
+    // current size + size of copy of parent + size of new log entry
+    if ((total_size + old_log_entry->inode.size + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
+        printf("Insufficient Disk Space to Perform Operation.\n");
+        return -ENOSPC;
+    }
+
     // Make a copy of the old log entry and add the created dentry to its data field
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
@@ -454,6 +476,9 @@ static int wfs_mkdir(const char *path, mode_t mode)
 
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update total size count
+        total_size += log_entry_copy->inode.size;
 
         // update the head
         head += log_entry_copy->inode.size;
@@ -477,6 +502,9 @@ static int wfs_mkdir(const char *path, mode_t mode)
 
         // add log entry to the log
         memcpy(head, new_log_entry, new_log_entry->inode.size);
+
+        // update total size count
+        total_size += new_log_entry->inode.size;
 
         // update the head
         head += new_log_entry->inode.size;
@@ -518,6 +546,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
     // end of log entry - start of data field
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
+    log_entry_copy->inode.atime = time(NULL);
 
     // Check if write exceeds current size of file data
     if ((f->data + offset + size) >= (f->data + data_size))
@@ -525,6 +554,12 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
         // Set data_size to incorporate extra data
         ptrdiff_t diff = (f->data + offset + size) - f->data;
         data_size = (int)diff;
+    }
+
+    // Check if write wwould exceed disk space
+    if ((total_size + sizeof(struct wfs_log_entry) + data_size) > MAX_SIZE){
+        printf("Insufficient disk space\n");
+        return -ENOSPC;
     }
 
     // allocate memory for a log entry copy
@@ -543,11 +578,14 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     log_entry_copy->inode.size += data_size;
 
     // update modify time
-    log_entry_copy->inode.atime = time(NULL);
-    log_entry_copy->inode.mtime = time(NULL); // modify vs change?
+    log_entry_copy->inode.ctime = time(NULL);
+    log_entry_copy->inode.mtime = time(NULL);
 
     // add log entry to head
     memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+    // update total size count
+    total_size += log_entry_copy->inode.size;
 
     // update head
     head += log_entry_copy->inode.size;
@@ -622,8 +660,14 @@ static int wfs_unlink(const char *path)
 
     // get parent log entry
     struct wfs_log_entry *parent_log_entry = get_log_entry(snip_bottom_level(path), 0);
-
     parent_log_entry->inode.atime = time(NULL);
+
+    // perform size bounds checking
+    // current size + size of copy of parent
+    if ((total_size + parent_log_entry->inode.size - sizeof(struct wfs_dentry)) > MAX_SIZE) {
+        printf("Insufficient Disk Space to Perform Operation.\n");
+        return -ENOSPC;
+    }
 
     // get target log entry
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
@@ -675,6 +719,9 @@ static int wfs_unlink(const char *path)
 
         // write the log entry copy to the log
         memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+
+        // update total size count
+        total_size += log_entry_copy->inode.size;
 
         // update the head
         head += log_entry_copy->inode.size;
@@ -760,6 +807,6 @@ int main(int argc, char *argv[])
     // Call fuse_main with your FUSE operations and data
     fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);
     munmap(base, file_stat.st_size);
-    
+
     return 0;
 }

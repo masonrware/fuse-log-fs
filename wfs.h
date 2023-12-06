@@ -6,6 +6,7 @@
 
 #define MAX_FILE_NAME_LEN 32
 #define WFS_MAGIC 0xdeadbeef
+#define MAX_SIZE 1000000
 
 struct wfs_sb {
     uint32_t magic;
@@ -13,6 +14,7 @@ struct wfs_sb {
 };
 
 extern int inode_count;
+extern int total_size;
 
 struct wfs_inode {
     unsigned int inode_number;

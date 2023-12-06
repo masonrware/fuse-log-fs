@@ -546,7 +546,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 
     // end of log entry - start of data field
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
-    log_entry_copy->inode.atime = time(NULL);
+    f->inode.atime = time(NULL);
 
     // Check if write exceeds current size of file data
     if ((f->data + offset + size) >= (f->data + data_size))

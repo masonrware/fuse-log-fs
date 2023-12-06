@@ -137,7 +137,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
     char *curr = base;
 
     // iterate past the superblock
-    curr += sizeof(struct* wfs_sb);
+    curr += sizeof(struct wfs_sb*);
     printf("141\n");
     while (curr != head)
     {

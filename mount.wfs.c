@@ -865,7 +865,7 @@ int main(int argc, char *argv[])
     char **fuse_argv = argv + 1;
 
     // Disable multi-threading with -s option
-    fuse_argv[0] = "-s";
+    // fuse_argv[0] = "-s";
 
     // Call fuse_main with your FUSE operations and data
     fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);

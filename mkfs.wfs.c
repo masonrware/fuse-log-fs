@@ -39,6 +39,7 @@ void initialize_filesystem(const char *disk_path) {
         exit(0);
     }
 
+
     // initialize the superblock
     struct wfs_sb* superblock = (struct wfs_sb*)base;
 

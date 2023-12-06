@@ -91,8 +91,9 @@ char *isolate_path(const char *path)
     const char *mount_point_pos = strstr(path, mount_point);
     if (mount_point_pos == NULL)
     {
-        // Mount point not found, return a copy of the input path
-        return strdup(path);
+        // Mount point not found, move mount point back to start of path and continue
+        // return strdup(path);
+        mount_point_pos = path;
     }
 
     // Move the pointer after the mount point
@@ -124,8 +125,6 @@ char *isolate_path(const char *path)
 
     return remaining_path;
 }
-
-// TODO -- check all below functions and make sure all calls to get_parent_log_entry and get_log_entry are correct
 
 // Get the log entry of the direct parent dir -- recursive function
 static struct wfs_log_entry *get_parent_log_entry(const char *path, int inode_number)
@@ -178,7 +177,7 @@ static struct wfs_log_entry *get_parent_log_entry(const char *path, int inode_nu
     return NULL;
 }
 
-// Get filename from a path
+// Get last part of a path
 char *get_last_part(const char *path)
 {
     if (path == NULL || strlen(path) == 0)
@@ -304,6 +303,7 @@ int can_create(const char *path)
 
     // Check if filename is unique in directory
     struct wfs_log_entry *parent = get_parent_log_entry(path, 0);
+    // struct wfs_log_entry *parent = get_log_entry(isolate_path(path));
 
     char *data_addr = parent->data;
 
@@ -325,9 +325,6 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
-    // char full_path[PATH_MAX];
-    // get_full_path(path, full_path);
-
     struct wfs_log_entry *log_entry = get_log_entry(path);
 
     // Update time of last access
@@ -347,17 +344,6 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 // Function to create a regular file
 static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-    // char full_path[PATH_MAX];
-    // get_full_path(path, full_path);
-
-    // TODO is this redundant given next call
-    // Verify file name
-    if (!valid_name(get_last_part(path)))
-    {
-        printf("Invalid Filename");
-        return -1;
-    }
-
     // Verify file doesn't exist in its intended parent dir (and that its name is valid)
     if (!can_create(path))
     {
@@ -395,7 +381,8 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     }
 
     // Get parent directory log entry
-    struct wfs_log_entry *old_log_entry = get_log_entry(path);
+    struct wfs_log_entry *old_log_entry = get_parent_log_entry(isolate_path(path), 0);
+    // struct wfs_log_entry *old_log_entry = get_log_entry(isolate_path(path));
 
     // Make a copy of the old log entry and add the created dentry to its data field
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
@@ -403,8 +390,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     {
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
-        // TODO is this redundant?
-        log_entry_copy->inode.size = old_log_entry->inode.size;
 
         // add the dentry to log_entry_copy's data and update new log entry's size
         memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
@@ -430,6 +415,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     {
         // point the log entry at the created inode
         // TODO should I use memcpy?
+        // memccpy(new_log_entry, &new_inode, new_inode.size);
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
@@ -449,9 +435,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 // Function to create a directory
 static int wfs_mkdir(const char *path, mode_t mode)
 {
-    // char full_path[PATH_MAX];
-    // get_full_path(path, full_path);
-
     // create a new inode for the subdirectory
     struct wfs_inode new_inode;
     inode_count += 1;
@@ -466,8 +449,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
     new_inode.atime = time(NULL);
     new_inode.mtime = time(NULL);
     new_inode.ctime = time(NULL);
-    // TODO should this be 2 -- piazza 1524
-    new_inode.links = 0;
+    new_inode.links = 1;
 
     // Create a new dentry for the directory
     struct wfs_dentry *new_dentry = (struct wfs_dentry *)malloc(sizeof(struct wfs_dentry));
@@ -484,7 +466,9 @@ static int wfs_mkdir(const char *path, mode_t mode)
     }
 
     // Get parent directory log entry
-    struct wfs_log_entry *old_log_entry = get_log_entry(path);
+    struct wfs_log_entry *old_log_entry = get_parent_log_entry(isolate_path(path), 0);
+    // struct wfs_log_entry *old_log_entry = get_log_entry(isolate_path(path));
+
 
     // Make a copy of the old log entry and add the created dentry to its data field
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
@@ -492,8 +476,6 @@ static int wfs_mkdir(const char *path, mode_t mode)
     {
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
-        // TODO is this redundant?
-        log_entry_copy->inode.size = old_log_entry->inode.size;
 
         // add the dentry to log_entry_copy's data and update new log entry's size
         memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
@@ -519,6 +501,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
     {
         // point the log entry at the created inode
         // TODO should I use memcpy?
+        // memccpy(new_log_entry, &new_inode, new_inode.size);
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
@@ -562,7 +545,6 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if write exceeds current size of file data
-    // TODO check if the write would exceed disk size?
     if ((f->data + offset + size) >= (f->data + data_size))
     {
         // Set data_size to incorporate extra data
@@ -583,7 +565,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     memcpy(log_entry_copy->data + offset, buf, size);
 
     // change size field of new entry to be updated size
-    log_entry_copy->inode.size = data_size;
+    log_entry_copy->inode.size += data_size;
 
     // update modify time
     log_entry_copy->inode.atime = time(NULL);
@@ -629,7 +611,6 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
         strcpy(total_path, path);
         strcpy(total_path + len1, curr_dentry->name);
 
-        // Treat all paths as a file path (arg 2 is 0) because I can't tell whether the dentry is a dir or file
         struct wfs_log_entry *curr_log_entry = get_log_entry(total_path);
         // Update time of last access
         curr_log_entry->inode.atime = time(NULL);
@@ -661,6 +642,8 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 static int wfs_unlink(const char *path)
 {
     struct wfs_log_entry *parent_log_entry = get_parent_log_entry(path, 0);
+    // struct wfs_log_entry *parent_log_entry = get_log_entry(isolate_path(path));
+
     parent_log_entry->inode.atime = time(NULL);
 
     struct wfs_log_entry *log_entry = get_log_entry(path);
@@ -795,5 +778,8 @@ int main(int argc, char *argv[])
     fuse_argv[0] = "-s";
 
     // Call fuse_main with your FUSE operations and data
-    return fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);
+    fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);
+    munmap(base, file_stat.st_size);
+    
+    return 0;
 }

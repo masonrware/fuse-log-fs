@@ -150,7 +150,7 @@ static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
             if (curr_log_entry->inode.inode_number == inode_number)
             {
                 // base case -- either "" or "/"
-                if (strlen(path) == 0 || strlen(path) == 1)
+                if (path == NULL)
                 {
                     return curr_log_entry;
                 }
@@ -249,16 +249,28 @@ int can_create(const char *path)
 {
     char *last_part = get_bottom_level(path);
 
+
     // Check filename
     if (!valid_name(last_part))
     {
         printf("Invalid file or subdir name\n");
         return 0;
+
+    // TODO is the below necessary?
+    // Check return val from get_last_part
+    if (strcmp(last_part, "") == 0)
+    {
+        printf("Empty filename\n");
+
     }
 
     // Check if filename is unique in directory
     struct wfs_log_entry *parent = get_log_entry(snip_bottom_level(path), 0);
-    // struct wfs_log_entry *parent = get_log_entry(isolate_path(path));
+
+    if(parent == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
 
     char *data_addr = parent->data;
 
@@ -285,6 +297,11 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
 
+    if(log_entry == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
     // Update time of last access
     log_entry->inode.atime = time(NULL);
 
@@ -304,9 +321,17 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
     path = remove_pre_mount(path);
 
-    // Verify file doesn't exist in its intended parent dir (and that its name is valid)
+    // Verify filename
+    if (!valid_name(get_bottom_level(path)))
+    {
+        printf("Invalid File Name\n");
+        return 0;
+    }
+
+    // Verify file doesn't exist in its intended parent dir
     if (!can_create(path))
     {
+        printf("File Name Already In Use Locally.\n");
         return -EEXIST;
     }
 
@@ -342,6 +367,11 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
     // Get parent directory log entry
     struct wfs_log_entry *old_log_entry = get_log_entry(snip_bottom_level(path), 0);
+
+    if(old_log_entry == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
 
     // perform size bounds checking
     // current size + size of copy of parent + size of new log entry
@@ -413,9 +443,18 @@ static int wfs_mkdir(const char *path, mode_t mode)
 {
     path = remove_pre_mount(path);
 
-    // Verify dir doesn't exist in its intended parent dir (and that its name is valid)
+
+    // Verify filename
+    if (!valid_name(get_bottom_level(path)))
+    {
+        printf("Invalid Directory Name\n");
+        return 0;
+    }
+
+    // Verify file doesn't exist in its intended parent dir
     if (!can_create(path))
     {
+        printf("Directory Name Already In Use Locally.\n");
         return -EEXIST;
     }
 
@@ -452,6 +491,12 @@ static int wfs_mkdir(const char *path, mode_t mode)
     // Get parent directory log entry
     struct wfs_log_entry *old_log_entry = get_log_entry(snip_bottom_level(path), 0);
 
+    if(old_log_entry == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
+    
     // perform size bounds checking
     // current size + size of copy of parent + size of new log entry
     if ((total_size + old_log_entry->inode.size + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
@@ -493,9 +538,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
     struct wfs_log_entry *new_log_entry = (struct wfs_log_entry *)malloc(sizeof(struct wfs_log_entry));
     if (new_log_entry != NULL)
     {
-        // point the log entry at the created inode
-        // TODO should I use memcpy?
-        // memccpy(new_log_entry, &new_inode, new_inode.size);
+        // point the log entry at the created inode -- this will create a shallow copy of values (not a problem)
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
@@ -522,6 +565,12 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 
     // Grab log entry for desired file
     struct wfs_log_entry *f = get_log_entry(path, 0);
+
+    if(f == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if offset is too large
@@ -543,10 +592,17 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     // Grab log entry for desired file
     struct wfs_log_entry *f = get_log_entry(path, 0);
 
+    if(f == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
     // end of log entry - start of data field
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
     f->inode.atime = time(NULL);
+
     f->inode.ctime = time(NULL);
+
 
     // Check if write exceeds current size of file data
     if ((f->data + offset + size) >= (f->data + data_size))
@@ -599,6 +655,12 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     path = remove_pre_mount(path);
 
     struct wfs_log_entry *dir_log_entry = get_log_entry(path, 0);
+
+    if(dir_log_entry == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
     dir_log_entry->inode.atime = time(NULL);
     dir_log_entry->inode.ctime = time(NULL);
 
@@ -628,6 +690,12 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
         strcpy(total_path + len1, curr_dentry->name);
 
         struct wfs_log_entry *curr_log_entry = get_log_entry(total_path, 0);
+
+        if(curr_log_entry == NULL) {
+            printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+            return -ENOENT;
+        }
+
         // Update time of last access
         curr_log_entry->inode.atime = time(NULL);
         curr_log_entry->inode.ctime = time(NULL);
@@ -662,6 +730,12 @@ static int wfs_unlink(const char *path)
 
     // get parent log entry
     struct wfs_log_entry *parent_log_entry = get_log_entry(snip_bottom_level(path), 0);
+
+    if(parent_log_entry == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
     parent_log_entry->inode.atime = time(NULL);
     parent_log_entry->inode.ctime = time(NULL);
 
@@ -674,6 +748,12 @@ static int wfs_unlink(const char *path)
 
     // get target log entry
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
+
+    if(log_entry == NULL) {
+        printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
+        return -ENOENT;
+    }
+
     log_entry->inode.atime = time(NULL);
 
     // mark file log entry as deleted

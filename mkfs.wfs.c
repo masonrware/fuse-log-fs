@@ -28,7 +28,7 @@ void initialize_filesystem(const char *disk_path) {
         close(fd);
         exit(EXIT_FAILURE);
     }
-
+    printf("File size: %d\n", (int)file_stat.st_size);
     // Memory map file
     char* base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);

@@ -283,10 +283,13 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 {
     printf("getattr\n");
 
+    printf("286\n");
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
+    printf("290\n");
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
+    printf("292\n");
 
     if(log_entry == NULL) {
         printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);

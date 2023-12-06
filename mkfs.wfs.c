@@ -70,7 +70,7 @@ void initialize_filesystem(const char *disk_path) {
     // Place the root log entry at the head address
     uintptr_t conv = superblock->head;
     void* head_ptr = (void*) conv;
-    printf("Head addr: %p\n", head_ptr);
+    printf("Head addr: %p\nRoot log size: %d\n", head_ptr, (int)root_log_entry_size);
     memcpy(head_ptr, &root_log_entry, root_log_entry_size);
     
     // Update the head to be after the added root log entry

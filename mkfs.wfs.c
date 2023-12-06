@@ -38,6 +38,7 @@ void initialize_filesystem(const char *disk_path) {
         printf("mmap failed\n");
         exit(0);
     }
+    printf("Base start: %p\n", base);
 
 
     // initialize the superblock

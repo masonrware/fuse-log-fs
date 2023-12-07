@@ -900,6 +900,7 @@ int main(int argc, char *argv[])
 
     // Store head global
     head = (char *)&superblock->head;
+    head += sizeof(uint32_t);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     // int fuse_argc = argc - 2; // Adjust argc for FUSE options

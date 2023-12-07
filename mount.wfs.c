@@ -204,19 +204,23 @@ char *remove_pre_mount(const char *path)
         return NULL;
     }
 
+    printf("rmmount>>207\n");
     if(strncmp(path, "/", strlen(path)) == 0) {
         return strdup(path);
     }
 
+    printf("rmmount>>212\n");
     // Find the mount point in the path
     const char *mount_point_pos = strstr(path, mount_point);
     if (mount_point_pos == NULL)
     {
+        printf("rmmount>>217\n");
         // Mount point not found, move mount point back to start of path and continue
-        // return strdup(path);
-        mount_point_pos = path;
+        return strdup(path);
+        // mount_point_pos = path;
     }
 
+    printf("rmmount>>222\n");
     // Move the pointer after the mount point
     mount_point_pos += strlen(mount_point);
 
@@ -224,7 +228,7 @@ char *remove_pre_mount(const char *path)
     // size_t remaining_length = last_slash - mount_point_pos;
     size_t remaining_length = path+strlen(path) - mount_point_pos;
 
-
+    printf("rmmount>>231");
     // Allocate memory for the remaining path
     char *remaining_path = (char *)malloc((remaining_length + 1) * sizeof(char));
     if (remaining_path == NULL)
@@ -234,10 +238,12 @@ char *remove_pre_mount(const char *path)
         exit(EXIT_FAILURE);
     }
 
+    printf("rmmount>>241\n");
     // Copy the remaining path into the new string
     strncpy(remaining_path, mount_point_pos, remaining_length);
     remaining_path[remaining_length] = '\0';
 
+    printf("rmmount>>246\n");
     return remaining_path;
 }
 

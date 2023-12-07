@@ -219,7 +219,7 @@ char *remove_pre_mount(const char *path)
     }
 
     if(strncmp(path, "/", strlen(path)) == 0) {
-        return path;
+        return strdup(path);
     }
 
     // Find the mount point in the path

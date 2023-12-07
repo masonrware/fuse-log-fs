@@ -10,7 +10,7 @@
 
 struct wfs_sb {
     uint32_t magic;
-    uint32_t head;
+    char * head;
 };
 
 extern int inode_count;

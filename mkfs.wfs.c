@@ -43,9 +43,9 @@ void initialize_filesystem(const char *disk_path) {
     struct wfs_sb* superblock = (struct wfs_sb*)base;
 
     superblock->magic = WFS_MAGIC;
-    superblock->head = (uint32_t)((uintptr_t)base + sizeof(struct wfs_sb));
+    superblock->head = base + sizeof(struct wfs_sb);
 
-    printf("%p %p\n", base, (void *)superblock->head);
+    printf("%p %p\n", base, superblock->head);
  
     // Initialize the root directory log entry
     struct wfs_inode root_inode;
@@ -66,14 +66,14 @@ void initialize_filesystem(const char *disk_path) {
     root_log_entry->inode = root_inode;
 
     // Place the root log entry at the head address
-    memcpy((void *)superblock->head, root_log_entry, root_log_entry->inode.size);
+    memcpy(superblock->head, root_log_entry, root_log_entry->inode.size);
     
     // Update the head to be after the added root log entry
     superblock->head += root_log_entry->inode.size;
     // update total size
     total_size += root_log_entry->inode.size + sizeof(struct wfs_sb);
 
-    printf("%p %p\n", base, (void *)superblock->head);
+    printf("%p %p\n", base, superblock->head);
  
     // write to disk
     munmap(base, file_stat.st_size);

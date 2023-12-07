@@ -174,9 +174,9 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     while (data_addr != (char *)(curr_log_entry) + curr_log_entry->inode.size)
                     {
                         printf("176\n");
-                        printf("get_log_entry>>comparing %s to %s\n", strcmp(((struct wfs_dentry *)data_addr)->name, ancestor));
+                        printf("get_log_entry>>comparing %s to %s: %d\n", ((struct wfs_dentry *)data_addr)->name, ancestor, strcmp(((struct wfs_dentry *)data_addr)->name, ancestor));
                         printf("get_log_entry>>dentry->name: %s\n", ((struct wfs_dentry *)data_addr)->name);
-                        printf("get_log_entry>>dentry->inode_number: %s\n", ((struct wfs_dentry *)data_addr)->inode_number);
+                        printf("get_log_entry>>dentry->inode_number: %ld\n", ((struct wfs_dentry *)data_addr)->inode_number);
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
                             printf("179\n");

@@ -43,8 +43,7 @@ void initialize_filesystem(const char *disk_path) {
     struct wfs_sb* superblock = (struct wfs_sb*)base;
 
     superblock->magic = WFS_MAGIC;
-    superblock->head = (intptr_t)base;
-    superblock->head += sizeof(struct wfs_sb);
+    superblock->head = (uint32_t)((uintptr_t)base + sizeof(struct wfs_sb));
 
     printf("%p %p\n", base, (void *)superblock->head);
  

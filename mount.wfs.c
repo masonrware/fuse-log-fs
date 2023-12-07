@@ -189,8 +189,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         // printf("inode ctime: %d\n", curr_log_entry->inode.ctime);
                         // printf("inode links: %d\n", curr_log_entry->inode.links);
 
-                        printf("%s %s %u\n", data_addr, (char *)curr_log_entry, curr_log_entry->inode.size);
-                        // if the subdir is the current highest ancestor of our target
+                        printf("%p %p %p %p %u\n", base, head, data_addr, (char *)curr_log_entry, curr_log_entry->inode.size);                        // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
                             printf("181\n");
@@ -904,7 +903,7 @@ int main(int argc, char *argv[])
     // Store head global
     head = (char *)&superblock->head;
     // head += sizeof(uint32_t);
-    printf("%s\n", head);
+    printf("%p %p\n", head);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     // int fuse_argc = argc - 2; // Adjust argc for FUSE options

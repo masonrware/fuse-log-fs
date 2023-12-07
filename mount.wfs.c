@@ -29,6 +29,7 @@ struct wfs_sb *superblock;
 // Remove the top-most (left most) extension of a path
 char *snip_top_level(const char *path)
 {
+    printf("SNIP TL\n");
     if (path == NULL || strlen(path) == 0)
     {
         // Handle invalid input
@@ -72,7 +73,8 @@ char *snip_top_level(const char *path)
 // Remove the bottom-most (right most) extension of a path
 char *snip_bottom_level(const char *path)
 {
-   if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
+    printf("SNIP BL\n");
+    if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
         // Handle invalid input
         return NULL;
@@ -100,6 +102,7 @@ char *snip_bottom_level(const char *path)
 // Get bottom-level (right most) extention of a path
 char *get_bottom_level(const char *path)
 {
+    printf("GET BL\n");
     if (path == NULL || strlen(path) == 0)
     {
         // Handle invalid input
@@ -133,6 +136,7 @@ char *get_bottom_level(const char *path)
 // Get the log entry of the bottom-level (right most) extension of a path recursively
 struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 {
+    printf("GET LOG ENTRY\n");
     char *curr = base;
 
     // iterate past the superblock
@@ -185,6 +189,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 // Remove any pre-mount portion (including the mount point) of a path
 char *remove_pre_mount(const char *path)
 {
+    printf("RM PRE MOUNT\n");
     if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
         // Handle invalid input
@@ -232,6 +237,7 @@ char *remove_pre_mount(const char *path)
 // TODO check length as well?
 int valid_name(const char *filename)
 {
+    printf("VALID NAME\n");
     while (*filename != '\0')
     {
         if (!(isalnum(*filename) || *filename == '_'))
@@ -249,6 +255,7 @@ int valid_name(const char *filename)
 // Check if file/subdir can be created -- validate name and (local) uniqueness
 int can_create(const char *path)
 {
+    printf("CAN CREATE\n");
     char *last_part = get_bottom_level(path);
 
     // Check if filename is unique in directory
@@ -279,6 +286,7 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
+    printf("GETATTR\n");
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
@@ -306,6 +314,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 // Function to create a regular file
 static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
+    printf("MKNOD\n");
     path = remove_pre_mount(path);
 
     // Verify filename
@@ -425,6 +434,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 // Function to create a directory
 static int wfs_mkdir(const char *path, mode_t mode)
 {
+    printf("MKDIR\n");
     path = remove_pre_mount(path);
 
 
@@ -543,6 +553,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    printf("READ\n");
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -568,6 +579,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
+    printf("WRITE\n");
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -630,6 +642,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
+    printf("READDIR\n");
     path = remove_pre_mount(path);
 
     struct wfs_log_entry *dir_log_entry = get_log_entry(path, 0);
@@ -702,6 +715,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 // Function to unlink (delete) a file
 static int wfs_unlink(const char *path)
 {
+    printf("UNLINK\n");
     path = remove_pre_mount(path);
 
     // get parent log entry
@@ -804,6 +818,7 @@ static struct fuse_operations my_operations = {
 
 int main(int argc, char *argv[])
 {
+    printf("MAIN\n");
     if (argc < 4)
     {
         fprintf(stderr, "Usage: %s [FUSE options] disk_path mount_point\n", argv[0]);

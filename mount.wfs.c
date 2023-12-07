@@ -264,8 +264,6 @@ int valid_name(const char *entry_name)
         entry_name++;
     }
     
-    printf("%s\n", last_dot);
-    
     // If a dot is found, exclude characters after the last dot
     while (*entry_name != '\0' && entry_name != last_dot)
     {

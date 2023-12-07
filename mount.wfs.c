@@ -360,7 +360,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         return -EEXIST;
     }
 
-    printf("mknod>>342\n");
+    // printf("mknod>>342\n");
     // Create a new inode for the file
     struct wfs_inode new_inode;
     inode_count += 1;
@@ -377,7 +377,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     new_inode.ctime = time(NULL);
     new_inode.links = 1;
 
-    printf("mknod>>359\n");
+    // printf("mknod>>359\n");
     // Create a new dentry for the file
     struct wfs_dentry *new_dentry = (struct wfs_dentry *)malloc(sizeof(struct wfs_dentry));
     if (new_dentry != NULL)
@@ -392,7 +392,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         // Handle allocation failure
     }
 
-    printf("mknod>>374\n");
+    // printf("mknod>>374\n");
     // Get parent directory log entry
     struct wfs_log_entry *old_log_entry = get_log_entry(snip_bottom_level(path), 0);
 
@@ -408,18 +408,18 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         return -ENOSPC;
     }
 
-    printf("mknod>>390\n");
+    // printf("mknod>>390\n");
     // Make a copy of the old log entry and add the created dentry to its data field
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
-        printf("mknod>>395\n");
+        // printf("mknod>>395\n");
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
 
-        printf("dentry name: %s\n", new_dentry->name);
-        printf("dentry inode number: %ld\n", new_dentry->inode_number);
-        printf("base (%p) :: log_entry_copy (%p) :: log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", base, (char *)(log_entry_copy), (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
+        // printf("dentry name: %s\n", new_dentry->name);
+        // printf("dentry inode number: %ld\n", new_dentry->inode_number);
+        // printf("base (%p) :: log_entry_copy (%p) :: log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", base, (char *)(log_entry_copy), (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
         memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
@@ -543,7 +543,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
 
         // write the log entry copy to the log

@@ -197,7 +197,6 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
-                        // break;
                     }
                 }
             }
@@ -217,6 +216,10 @@ char *remove_pre_mount(const char *path)
     {
         // Handle invalid input
         return NULL;
+    }
+
+    if(strncmp(path, "/", strlen(path)) == 0) {
+        return path;
     }
 
     // Find the mount point in the path

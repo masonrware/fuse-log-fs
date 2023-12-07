@@ -419,7 +419,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
         printf("dentry name: %s\n", new_dentry->name);
         printf("dentry inode number: %ld\n", new_dentry->inode_number);
-        printf("log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
+        printf("base (%p) :: log_entry_copy (%p) :: log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", base, (char *)(log_entry_copy), (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
         memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));

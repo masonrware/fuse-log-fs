@@ -173,21 +173,21 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
                     printf("173\n");
                     // iterate over all dentries
-                    while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
+                    while (data_addr != (char *)(curr_log_entry) + curr_log_entry->inode.size)
                     {
-                        // printf("177\n");
-                        // printf(">%s %s %lu\n", head, base, sizeof(struct wfs_sb));
-                        // printf("inode num: %d\n", curr_log_entry->inode.inode_number);
-                        // printf("inode deleted: %d\n", curr_log_entry->inode.deleted);
-                        // printf("inode mode: %d\n", curr_log_entry->inode.mode);
-                        // printf("inode uid: %d\n", curr_log_entry->inode.uid);
-                        // printf("inode gid: %d\n", curr_log_entry->inode.gid);
-                        // printf("inode flags: %d\n", curr_log_entry->inode.flags);
-                        // printf("inode size: %d\n", curr_log_entry->inode.size);
-                        // printf("inode atime: %d\n", curr_log_entry->inode.atime);
-                        // printf("inode mtime: %d\n", curr_log_entry->inode.mtime);
-                        // printf("inode ctime: %d\n", curr_log_entry->inode.ctime);
-                        // printf("inode links: %d\n", curr_log_entry->inode.links);
+                        printf("177\n");
+                        printf(">%s %s %lu\n", head, base, sizeof(struct wfs_sb));
+                        printf("inode num: %d\n", curr_log_entry->inode.inode_number);
+                        printf("inode deleted: %d\n", curr_log_entry->inode.deleted);
+                        printf("inode mode: %d\n", curr_log_entry->inode.mode);
+                        printf("inode uid: %d\n", curr_log_entry->inode.uid);
+                        printf("inode gid: %d\n", curr_log_entry->inode.gid);
+                        printf("inode flags: %d\n", curr_log_entry->inode.flags);
+                        printf("inode size: %d\n", curr_log_entry->inode.size);
+                        printf("inode atime: %d\n", curr_log_entry->inode.atime);
+                        printf("inode mtime: %d\n", curr_log_entry->inode.mtime);
+                        printf("inode ctime: %d\n", curr_log_entry->inode.ctime);
+                        printf("inode links: %d\n", curr_log_entry->inode.links);
 
                         printf("%p %p %p %p %u\n", base, head, data_addr, (char *)curr_log_entry, curr_log_entry->inode.size);                        // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
@@ -196,6 +196,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
                         }
                         data_addr += sizeof(struct wfs_dentry);
+                        break;
                     }
                 }
             }
@@ -295,7 +296,7 @@ int can_create(const char *path)
     char *data_addr = parent->data;
 
     // iterate over all dentry's of parent
-    while (data_addr != (char *)(parent + parent->inode.size))
+    while (data_addr != (char *)(parent) + parent->inode.size)
     {
         // check if current dentry matches desired filename
         if (strcmp(((struct wfs_dentry *)data_addr)->name, last_part) == 0)
@@ -690,7 +691,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while (data_addr != (char *)(dir_log_entry + dir_log_entry->inode.size))
+    while (data_addr != (char *)(dir_log_entry) + dir_log_entry->inode.size)
     {
         struct wfs_dentry *curr_dentry = (struct wfs_dentry *)data_addr;
 
@@ -792,7 +793,7 @@ static int wfs_unlink(const char *path)
         // find the address offset of the dentry for this file
         char *data_addr = parent_log_entry->data;
         // iterate over all dentry's
-        while (data_addr != (char *)(parent_log_entry + parent_log_entry->inode.size))
+        while (data_addr != (char *)(parent_log_entry) + parent_log_entry->inode.size)
         {
             // check the inode number against the target log entry (deleted file)
             if (((struct wfs_dentry *)data_addr)->inode_number == log_entry->inode.inode_number)
@@ -806,14 +807,14 @@ static int wfs_unlink(const char *path)
         memcpy(log_entry_copy, parent_log_entry, data_addr - (char *)(parent_log_entry));
 
         // memcpy after the deleted dentry -- if this check does not hit, it means the deleted file was the last dentry of the parent log entry
-        if (data_addr != (char *)(parent_log_entry->inode.size - sizeof(struct wfs_dentry)))
+        if (data_addr != (char *)(parent_log_entry->inode.size) - sizeof(struct wfs_dentry))
         {
             // the start of the remaining data portion of the copy of the parent's log entry
-            char *data_start_addr = (char *)(log_entry_copy + (data_addr - (char *)(parent_log_entry)));
+            char *data_start_addr = (char *)(log_entry_copy) + (data_addr - (char *)(parent_log_entry));
             // the address of the remaining data in the original parent (after the deleted target file's dentry)
             char *parent_after_data_addr = data_addr + sizeof(struct wfs_dentry);
             // the size remaining after the child's dentry
-            uint parent_remaining_size = (char *)(parent_log_entry + parent_log_entry->inode.size) - parent_after_data_addr;
+            uint parent_remaining_size = (char *)(parent_log_entry) + parent_log_entry->inode.size - parent_after_data_addr;
 
             memcpy(data_start_addr, parent_after_data_addr, parent_remaining_size);
         }
@@ -903,7 +904,6 @@ int main(int argc, char *argv[])
     // Store head global
     head = base + superblock->head;
     // head += sizeof(uint32_t);
-    printf("%p %p\n", head);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     // int fuse_argc = argc - 2; // Adjust argc for FUSE options

@@ -44,7 +44,7 @@ void initialize_filesystem(const char *disk_path) {
 
     superblock->magic = WFS_MAGIC;
     superblock->head = ((uintptr_t)base) + sizeof(struct wfs_sb);
-    printf("%s %s %lu\n", superblock->head, base, sizeof(struct wfs_sb));
+    printf("%d %s %lu\n", superblock->head, base, sizeof(struct wfs_sb));
  
     // Initialize the root directory log entry
     struct wfs_inode root_inode;

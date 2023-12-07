@@ -137,7 +137,8 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
     char *curr = base;
 
     // iterate past the superblock
-    curr += sizeof(struct wfs_sb*);
+    curr += sizeof(struct wfs_sb);
+
     printf("141\n");
     while (curr != head)
     {
@@ -175,6 +176,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
                     {
                         printf("177\n");
+                        printf(">%p %p %d\n", head, base, sizeof(struct wfs_sb));
                         printf("inode num: %d\n", curr_log_entry->inode.inode_number);
                         printf("inode deleted: %d\n", curr_log_entry->inode.deleted);
                         printf("inode mode: %d\n", curr_log_entry->inode.mode);

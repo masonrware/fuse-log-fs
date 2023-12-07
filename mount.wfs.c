@@ -24,6 +24,7 @@ char *mount_point;
 
 char *head;
 char *base;
+char *end;
 struct wfs_sb *superblock;
 
 // Remove the top-most (left most) extension of a path
@@ -286,7 +287,7 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
-    printf("GETATTR\n");
+    printf("GETATTR: %s\n", path);
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
@@ -314,7 +315,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 // Function to create a regular file
 static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-    printf("MKNOD\n");
+    printf("MKNOD: %s\n", path);
     path = remove_pre_mount(path);
 
     // Verify filename
@@ -868,6 +869,7 @@ int main(int argc, char *argv[])
 
     // Store head global
     head = base + superblock->head;
+    end = base + (int)file_stat.st_size;
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     argv[argc-2] = argv[argc-1];

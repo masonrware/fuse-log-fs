@@ -175,6 +175,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         }
                         data_addr += sizeof(struct wfs_dentry);
                     }
+                    printf("Base: %p | Head: %p | curr_log_entry: %p | data_addr %p\n", base, head, (void*)curr_log_entry, data_addr);
                 }
             }
         }

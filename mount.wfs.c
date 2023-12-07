@@ -249,17 +249,30 @@ char *remove_pre_mount(const char *path)
 
 // Check if filename contains valid characters
 // TODO check length as well?
-int valid_name(const char *filename)
+int valid_name(const char *entry_name)
 {
-    printf(">>valid_name: %s\n", filename);
-    while (*filename != '\0')
+    printf(">>valid_name: %s\n", entry_name);
+
+    // Find the last dot in the filename
+    const char *last_dot = NULL;
+    while (*entry_name != '\0')
     {
-        if (!(isalnum(*filename) || *filename == '_'))
+        if (*entry_name == '.')
+        {
+            last_dot = entry_name;
+        }
+        entry_name++;
+    }
+
+    // If a dot is found, exclude characters after the last dot
+    while (last_dot != NULL && *last_dot != '\0')
+    {
+        if (!(isalnum(*last_dot) || *last_dot == '_'))
         {
             // If the character is not alphanumeric or underscore, the filename is invalid
             return 0;
         }
-        filename++;
+        last_dot++;
     }
 
     // All characters in the filename are valid
@@ -456,7 +469,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
     path = remove_pre_mount(path);
 
 
-    // Verify filename
+    // Verify dir name
     if (!valid_name(get_bottom_level(path)))
     {
         printf("Invalid Directory Name\n");

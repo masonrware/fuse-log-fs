@@ -181,7 +181,6 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         }
                         printf("182\n");
                         data_addr += sizeof(struct wfs_dentry);
-                        break;
                     }
                 }
             }

@@ -16,6 +16,9 @@ make
 # Create disk
 ./create_disk.sh
 
+# Initialize filesystem
+./mkfs.wfs disk
+
 # Create mount directory
 mkdir mnt
 

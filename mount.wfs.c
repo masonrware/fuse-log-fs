@@ -176,7 +176,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
                     {
                         printf("177\n");
-                        printf(">%p %p %d\n", head, base, sizeof(struct wfs_sb));
+                        printf(">%s %s %lu\n", head, base, sizeof(struct wfs_sb));
                         printf("inode num: %d\n", curr_log_entry->inode.inode_number);
                         printf("inode deleted: %d\n", curr_log_entry->inode.deleted);
                         printf("inode mode: %d\n", curr_log_entry->inode.mode);
@@ -189,7 +189,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         printf("inode ctime: %d\n", curr_log_entry->inode.ctime);
                         printf("inode links: %d\n", curr_log_entry->inode.links);
 
-                        printf("%p %p %d\n", data_addr, (void *)curr_log_entry, curr_log_entry->inode.size);
+                        printf("%s %s %u\n", data_addr, (char *)curr_log_entry, curr_log_entry->inode.size);
                         // if the subdir is the current highest ancestor of our target
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {

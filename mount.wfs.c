@@ -8,8 +8,8 @@
 
 #include <fcntl.h>
 #include <dirent.h>
-#include <ctype.h>
 
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -248,7 +248,7 @@ char *remove_pre_mount(const char *path)
 }
 
 // Check if filename contains valid characters
-// TODO check length as well?
+// TODO length check as well against macro
 int valid_name(const char *entry_name)
 {
     printf(">>valid_name: %s\n", entry_name);
@@ -263,9 +263,11 @@ int valid_name(const char *entry_name)
         }
         entry_name++;
     }
-
+    
+    printf("%s\n", last_dot);
+    
     // If a dot is found, exclude characters after the last dot
-    while (last_dot != NULL && *last_dot != '\0')
+    while (*entry_name != '\0' && entry_name != last_dot)
     {
         if (!(isalnum(*last_dot) || *last_dot == '_'))
         {

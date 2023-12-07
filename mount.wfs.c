@@ -165,7 +165,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     // iterate over all dentries
                     while (data_addr != (char *)(curr_log_entry) + curr_log_entry->inode.size)
                     {
-                        printf("Base: %p | Head: %p | data_addr %p\n", base, head, data_addr);
+                        printf("Base: %p | Head: %p | curr_log_entry: %p | data_addr %p\n", base, head, curr_log_entry,data_addr);
                         printf("get_log_entry>>comparing [%s] to [%s]\n", ((struct wfs_dentry *)data_addr)->name, ancestor);
                         printf("get_log_entry>>dentry->name: [%s]\n", ((struct wfs_dentry *)data_addr)->name);
                         printf("get_log_entry>>dentry->inode_number: [%ld]\n", ((struct wfs_dentry *)data_addr)->inode_number);

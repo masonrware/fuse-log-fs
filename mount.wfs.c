@@ -901,7 +901,7 @@ int main(int argc, char *argv[])
     }
 
     // Store head global
-    head = superblock->head;
+    head = base + superblock->head;
     // head += sizeof(uint32_t);
     printf("%p %p\n", head);
 

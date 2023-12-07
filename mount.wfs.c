@@ -417,12 +417,12 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
 
-        printf("dentry name: %ld\n", new_dentry->name);
-        printf("dentry inode number: %s\n", new_dentry->inode_number);
-        printf("log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", log_entry_copy + log_entry_copy->inode.size, sizeof((void *)new_dentry), head);
+        printf("dentry name: %s\n", new_dentry->name);
+        printf("dentry inode number: %ld\n", new_dentry->inode_number);
+        printf("log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
 
         // write the log entry copy to the log

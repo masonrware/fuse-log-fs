@@ -807,7 +807,7 @@ static int wfs_unlink(const char *path)
         memcpy(log_entry_copy, parent_log_entry, data_addr - (char *)(parent_log_entry));
 
         // memcpy after the deleted dentry -- if this check does not hit, it means the deleted file was the last dentry of the parent log entry
-        if (data_addr != (char *)(parent_log_entry->inode.size) - sizeof(struct wfs_dentry))
+        if (data_addr != ((char *)(parent_log_entry) + parent_log_entry->inode.size - sizeof(struct wfs_dentry)))
         {
             // the start of the remaining data portion of the copy of the parent's log entry
             char *data_start_addr = (char *)(log_entry_copy) + (data_addr - (char *)(parent_log_entry));

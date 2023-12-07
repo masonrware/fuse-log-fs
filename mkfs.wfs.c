@@ -71,6 +71,9 @@ void initialize_filesystem(const char *disk_path) {
     // update total size
     total_size += root_log_entry->inode.size + sizeof(struct wfs_sb);
 
+
+    printf("%p\n", &superblock->head);
+    
     // write to disk
     munmap(base, file_stat.st_size);
 

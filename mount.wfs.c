@@ -153,7 +153,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
             {
                 printf("153\n");
                 // base case -- either "" or "/"
-                if (path == NULL)
+                if (path == NULL || strlen(path) == 1)
                 {
                     printf("157\n");
                     return curr_log_entry;
@@ -175,19 +175,19 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     // iterate over all dentries
                     while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
                     {
-                        printf("177\n");
-                        printf(">%s %s %lu\n", head, base, sizeof(struct wfs_sb));
-                        printf("inode num: %d\n", curr_log_entry->inode.inode_number);
-                        printf("inode deleted: %d\n", curr_log_entry->inode.deleted);
-                        printf("inode mode: %d\n", curr_log_entry->inode.mode);
-                        printf("inode uid: %d\n", curr_log_entry->inode.uid);
-                        printf("inode gid: %d\n", curr_log_entry->inode.gid);
-                        printf("inode flags: %d\n", curr_log_entry->inode.flags);
-                        printf("inode size: %d\n", curr_log_entry->inode.size);
-                        printf("inode atime: %d\n", curr_log_entry->inode.atime);
-                        printf("inode mtime: %d\n", curr_log_entry->inode.mtime);
-                        printf("inode ctime: %d\n", curr_log_entry->inode.ctime);
-                        printf("inode links: %d\n", curr_log_entry->inode.links);
+                        // printf("177\n");
+                        // printf(">%s %s %lu\n", head, base, sizeof(struct wfs_sb));
+                        // printf("inode num: %d\n", curr_log_entry->inode.inode_number);
+                        // printf("inode deleted: %d\n", curr_log_entry->inode.deleted);
+                        // printf("inode mode: %d\n", curr_log_entry->inode.mode);
+                        // printf("inode uid: %d\n", curr_log_entry->inode.uid);
+                        // printf("inode gid: %d\n", curr_log_entry->inode.gid);
+                        // printf("inode flags: %d\n", curr_log_entry->inode.flags);
+                        // printf("inode size: %d\n", curr_log_entry->inode.size);
+                        // printf("inode atime: %d\n", curr_log_entry->inode.atime);
+                        // printf("inode mtime: %d\n", curr_log_entry->inode.mtime);
+                        // printf("inode ctime: %d\n", curr_log_entry->inode.ctime);
+                        // printf("inode links: %d\n", curr_log_entry->inode.links);
 
                         printf("%s %s %u\n", data_addr, (char *)curr_log_entry, curr_log_entry->inode.size);
                         // if the subdir is the current highest ancestor of our target
@@ -903,7 +903,8 @@ int main(int argc, char *argv[])
 
     // Store head global
     head = (char *)&superblock->head;
-    head += sizeof(uint32_t);
+    // head += sizeof(uint32_t);
+    printf("%s\n", head);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     // int fuse_argc = argc - 2; // Adjust argc for FUSE options

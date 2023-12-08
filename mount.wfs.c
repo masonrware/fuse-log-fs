@@ -313,7 +313,7 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 {
     printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
-    path = remove_pre_mount(path);
+    // path = remove_pre_mount(path);
 
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
 

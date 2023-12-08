@@ -308,6 +308,7 @@ int can_create(const char *path)
     // file/subdir name is valid for its targeted parent directory
     return 1;
 }
+}
 
 ////// BELOW IS FOR FUSE ///////
 

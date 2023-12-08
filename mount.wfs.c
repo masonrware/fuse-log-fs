@@ -899,6 +899,7 @@ int main(int argc, char *argv[])
         // TODO Handle error
         return -1;
     }
+    
 
     // Cast superblock
     superblock = (struct wfs_sb *)base;

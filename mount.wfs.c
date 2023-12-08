@@ -300,6 +300,21 @@ int can_create(const char *path)
     printf(">>can create: %s\n", path);
     char *last_part = get_bottom_level(path);
 
+    // Check filename
+    if (!valid_name(last_part))
+    {
+        printf("Invalid file or subdir name\n");
+        return 0;
+    }
+    
+    // TODO is the below necessary?
+    // Check return val from get_last_part
+    if (strcmp(last_part, "") == 0)
+    {
+        printf("Empty filename\n");
+
+    }
+
     // Check if filename is unique in directory
     struct wfs_log_entry *parent = get_log_entry(snip_bottom_level(path), 0);
 

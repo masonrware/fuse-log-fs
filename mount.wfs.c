@@ -346,7 +346,7 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
-    debug("debug.txt", ">>getattr: %s\n", path);
+    debug("debug.txt", ">>getattr\n");
     printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);

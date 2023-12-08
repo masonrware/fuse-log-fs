@@ -139,29 +139,22 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
     // iterate past the superblock
     curr += sizeof(struct wfs_sb);
 
-    printf("141\n");
     while (curr != head)
     {
-        printf("144\n");
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
-        printf("146\n");
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1)
         {
-            printf("150\n");
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
-                printf("154\n");
                 // base case -- either "" or "/"
                 if (path == NULL || strlen(path) == 1 || strlen(path) == 0)
                 {
-                    printf("158\n");
                     return curr_log_entry;
                 }
                 else
                 {
-                    printf("163\n");
                     char path_copy[100];
                     strcpy(path_copy, path);
 
@@ -170,7 +163,6 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
                     char *data_addr = curr_log_entry->data;
 
-                    printf("172\n");
                     // iterate over all dentries
                     while (data_addr != (char *)(curr_log_entry) + curr_log_entry->inode.size)
                     {
@@ -189,10 +181,8 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
-                            printf("179\n");
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
                         }
-                        printf("182\n");
                         data_addr += sizeof(struct wfs_dentry);
                         // TODO REMOVE
                         // break;
@@ -200,13 +190,11 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                 }
             }
         }
-        printf("189\n");
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
         // TODO REMOVE
         // break;
     }
-    printf("193\n");
     return NULL;
 }
 
@@ -220,23 +208,19 @@ char *remove_pre_mount(const char *path)
         return NULL;
     }
 
-    printf("rmmount>>207\n");
     if(strncmp(path, "/", strlen(path)) == 0) {
         return strdup(path);
     }
 
-    printf("rmmount>>212\n");
     // Find the mount point in the path
     const char *mount_point_pos = strstr(path, mount_point);
     if (mount_point_pos == NULL)
     {
-        printf("rmmount>>217\n");
         // Mount point not found, move mount point back to start of path and continue
         return strdup(path);
         // mount_point_pos = path;
     }
 
-    printf("rmmount>>222\n");
     // Move the pointer after the mount point
     mount_point_pos += strlen(mount_point);
 
@@ -244,7 +228,6 @@ char *remove_pre_mount(const char *path)
     // size_t remaining_length = last_slash - mount_point_pos;
     size_t remaining_length = path+strlen(path) - mount_point_pos;
 
-    printf("rmmount>>231");
     // Allocate memory for the remaining path
     char *remaining_path = (char *)malloc((remaining_length + 1) * sizeof(char));
     if (remaining_path == NULL)
@@ -254,12 +237,10 @@ char *remove_pre_mount(const char *path)
         exit(EXIT_FAILURE);
     }
 
-    printf("rmmount>>241\n");
     // Copy the remaining path into the new string
     strncpy(remaining_path, mount_point_pos, remaining_length);
     remaining_path[remaining_length] = '\0';
 
-    printf("rmmount>>246\n");
     return remaining_path;
 }
 

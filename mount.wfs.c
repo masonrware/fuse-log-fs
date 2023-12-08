@@ -620,11 +620,19 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
     int data_size = f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if offset is too large
-    if (offset >= data_size)
-        return 0;
+    // if (offset >= data_size)
+    //     return 0;
+
+    if (offset < data_size){
+        if (offset + size > data_size){
+            size = data_size - offset;
+        }
+        memcpy(buf, f->data + offset, size);
+    }
+    else size = 0;
 
     // Read file data into buffer
-    memcpy(buf, f->data + offset, size);
+    // memcpy(buf, f->data + offset, size);
     f->inode.atime = time(NULL);
     return size;
 }

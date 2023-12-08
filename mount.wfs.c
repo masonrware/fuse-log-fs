@@ -148,7 +148,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         if (curr_log_entry->inode.deleted != 1)
         {
             printf(">>get_log_entry: inode not deleted\n");
-            printf("curr_log_entry (%p) :: crl+size (%p) :: data_addr (%p) :: base (%p) :: head (%p)\n", (char *) curr_log_entry,(char *)(curr_log_entry) + curr_log_entry->inode.size, data_addr, base, head);
+            printf("curr_log_entry (%p) :: crl+size (%p) :: base (%p) :: head (%p)\n", (char *) curr_log_entry,(char *)(curr_log_entry) + curr_log_entry->inode.size, base, head);
             printf("curr_log_entry->inode_number: %d\n", curr_log_entry->inode.inode_number);
             printf("curr_log_entry->deleted: %d\n", curr_log_entry->inode.deleted);
             printf("curr_log_entry->mode: %d\n", curr_log_entry->inode.mode);

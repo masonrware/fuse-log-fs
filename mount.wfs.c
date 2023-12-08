@@ -904,6 +904,7 @@ int main(int argc, char *argv[])
     superblock = (struct wfs_sb *)base;
 
     // Check magic number
+    printf("Magic number: %d\n", superblock->magic);
     if (superblock->magic != WFS_MAGIC)
     {
         return -1;
@@ -912,7 +913,7 @@ int main(int argc, char *argv[])
     // Store head global
     head = base + superblock->head;
 
-    printf("Base: %p | Head: %p | Superblock head: %ld\n", base, head, superblock->head);
+    printf("Base: %p | Head: %p | Superblock head: %d\n", base, head, superblock->head);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     argv[argc-2] = argv[argc-1];

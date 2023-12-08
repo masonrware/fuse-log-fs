@@ -11,6 +11,7 @@ READONLY_PREBUILT_DISK = f'{TEST_DIR}/prebuilt_disk'
 TEST_PREBUILT_DISK = 'test_prebuilt_disk'
 NEW_DISK_PATH = f'd'
 
+MOUNT_POINT = os.path.abspath('mnt')
 
 def run_command(command, err_msg):
     # Run the command and check if it returns 0

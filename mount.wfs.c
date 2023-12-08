@@ -142,11 +142,12 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
     while (curr != head)
     {
-        printf(">>get_log_entry: Curr: %p\n", curr);
+        printf(">>get_log_entry 1: Curr: %p\n", curr);
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1)
         {
+            printf(">>get_log_entry: inode not deleted\n", curr);
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
@@ -197,6 +198,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         // TODO REMOVE
         // break;
     }
+    printf(">>get_log_entry 2: Curr: %p\n", curr);
     return NULL;
 }
 

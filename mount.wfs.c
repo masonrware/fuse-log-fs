@@ -26,22 +26,6 @@ char *head;
 char *base;
 struct wfs_sb *superblock;
 
-void debug (const char *filename, const char *debugInfo) {
-    // Open the file in write mode, create it if it doesn't exist
-    FILE *file = fopen(filename, "a"); // "a" stands for append mode
-
-    if (file == NULL) {
-        // Handle error if file cannot be opened
-        perror("Error opening file");
-        return;
-    }
-
-    // Write debugging information to the file
-    fprintf(file, "%s\n", debugInfo);
-
-    // Close the file
-    fclose(file);
-}
 
 // Remove the top-most (left most) extension of a path
 char *snip_top_level(const char *path)
@@ -346,7 +330,6 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
-    debug("/home/bbrandl/private/cs537/P7/fuse-log-fs/debug.txt", ">>getattr\n");
     printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
@@ -946,6 +929,8 @@ int main(int argc, char *argv[])
 
     // Store head global
     head = base + superblock->head;
+
+    printf("Base: %p | Head: %p\n", base, head);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     argv[argc-2] = argv[argc-1];

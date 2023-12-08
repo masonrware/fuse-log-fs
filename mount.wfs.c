@@ -175,9 +175,17 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     {
                         printf("176\n");
                         printf("curr_log_entry (%p) :: crl+size (%p) :: data_addr (%p) :: base (%p) :: head (%p)\n", (char *) curr_log_entry,(char *)(curr_log_entry) + curr_log_entry->inode.size, data_addr, base, head);
-                        printf("get_log_entry>>comparing %s to %s\n", ((struct wfs_dentry *)data_addr)->name, ancestor);
-                        printf("get_log_entry>>dentry->name: %s\n", ((struct wfs_dentry *)data_addr)->name);
-                        printf("get_log_entry>>dentry->inode_number: %ld\n", ((struct wfs_dentry *)data_addr)->inode_number);
+                        printf("curr_log_entry->inode_number: %d\n", curr_log_entry->inode.inode_number);
+                        printf("curr_log_entry->deleted: %d\n", curr_log_entry->inode.deleted);
+                        printf("curr_log_entry->mode: %d\n", curr_log_entry->inode.mode);
+                        printf("curr_log_entry->uid: %d\n", curr_log_entry->inode.uid);
+                        printf("curr_log_entry->gid: %d\n", curr_log_entry->inode.gid);
+                        printf("curr_log_entry->flags: %d\n", curr_log_entry->inode.flags);
+                        printf("curr_log_entry->size: %d\n", curr_log_entry->inode.size);
+                        printf("curr_log_entry->atime: %d\n", curr_log_entry->inode.atime);
+                        printf("curr_log_entry->mtime: %d\n", curr_log_entry->inode.mtime);
+                        printf("curr_log_entry->ctime: %d\n", curr_log_entry->inode.ctime);
+                        printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
                             printf("179\n");
@@ -185,6 +193,8 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         }
                         printf("182\n");
                         data_addr += sizeof(struct wfs_dentry);
+                        // TODO REMOVE
+                        break;
                     }
                 }
             }
@@ -192,6 +202,8 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         printf("189\n");
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
+        // TODO REMOVE
+        break;
     }
     printf("193\n");
     return NULL;

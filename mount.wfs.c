@@ -142,6 +142,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
     while (curr != head)
     {
+        printf(">>get_log_entry: Curr: %p\n", curr);
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1)
@@ -899,7 +900,7 @@ int main(int argc, char *argv[])
         // TODO Handle error
         return -1;
     }
-    
+
 
     // Cast superblock
     superblock = (struct wfs_sb *)base;

@@ -26,6 +26,23 @@ char *head;
 char *base;
 struct wfs_sb *superblock;
 
+void debug (const char *filename, const char *debugInfo) {
+    // Open the file in write mode, create it if it doesn't exist
+    FILE *file = fopen(filename, "a"); // "a" stands for append mode
+
+    if (file == NULL) {
+        // Handle error if file cannot be opened
+        perror("Error opening file");
+        return;
+    }
+
+    // Write debugging information to the file
+    fprintf(file, "%s\n", debugInfo);
+
+    // Close the file
+    fclose(file);
+}
+
 // Remove the top-most (left most) extension of a path
 char *snip_top_level(const char *path)
 {
@@ -329,6 +346,7 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
+    debug("debug.txt", "testing\n");
     printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
@@ -347,9 +365,9 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
     stbuf->st_gid = log_entry->inode.gid;
     stbuf->st_atime = log_entry->inode.atime;
     stbuf->st_mtime = log_entry->inode.mtime;
-    if (log_entry->inode.mode & S_IFDIR) stbuf->st_mode = S_IFDIR | 0755;
-    else stbuf->st_mode = S_IFREG | 0444;
-    // stbuf->st_mode = log_entry->inode.mode;
+    // if (log_entry->inode.mode & S_IFDIR) stbuf->st_mode = S_IFDIR | 0755;
+    // else stbuf->st_mode = S_IFREG | 0444;
+    stbuf->st_mode = log_entry->inode.mode;
     stbuf->st_nlink = log_entry->inode.links;
     stbuf->st_size = log_entry->inode.size;
 

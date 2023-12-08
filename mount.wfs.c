@@ -912,7 +912,7 @@ int main(int argc, char *argv[])
     // Store head global
     head = base + superblock->head;
 
-    printf("Base: %p | Head: %p\n", base, head);
+    printf("Base: %p | Head: %p | Superblock head: %ld\n", base, head, superblock->head);
 
     // FUSE options are passed to fuse_main, starting from argv[1]
     argv[argc-2] = argv[argc-1];

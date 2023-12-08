@@ -134,6 +134,7 @@ char *get_bottom_level(const char *path)
 // Get the log entry of the bottom-level (right most) extension of a path recursively
 struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 {
+    printf(">>get_log_entry: %s [%d]\n", path, inode_number);
     char *curr = base;
 
     // iterate past the superblock
@@ -313,8 +314,8 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 {
     printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
-    // path = remove_pre_mount(path);
-
+    path = remove_pre_mount(path);
+    printf(">>getattr 1\n");
     struct wfs_log_entry *log_entry = get_log_entry(path, 0);
 
     if(log_entry == NULL) {

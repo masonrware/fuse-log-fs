@@ -8,8 +8,8 @@
 
 #include <fcntl.h>
 #include <dirent.h>
-#include <ctype.h>
 
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -19,15 +19,12 @@
 int inode_count = 0;
 int total_size;
 
-static char *disk_path;
-static char *mount_point;
+char *disk_path;
+char *mount_point;
 
 char *head;
 char *base;
 struct wfs_sb *superblock;
-
-struct wfs_inode root_inode;
-struct wfs_log_entry root_log_entry;
 
 // Remove the top-most (left most) extension of a path
 char *snip_top_level(const char *path)
@@ -134,12 +131,13 @@ char *get_bottom_level(const char *path)
 }
 
 // Get the log entry of the bottom-level (right most) extension of a path recursively
-static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
+struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 {
     char *curr = base;
 
     // iterate past the superblock
     curr += sizeof(struct wfs_sb);
+
     while (curr != head)
     {
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
@@ -150,7 +148,7 @@ static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
             if (curr_log_entry->inode.inode_number == inode_number)
             {
                 // base case -- either "" or "/"
-                if (path == NULL)
+                if (path == NULL || strlen(path) == 1 || strlen(path) == 0)
                 {
                     return curr_log_entry;
                 }
@@ -165,9 +163,20 @@ static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     char *data_addr = curr_log_entry->data;
 
                     // iterate over all dentries
-                    while (data_addr != (char *)(curr_log_entry + curr_log_entry->inode.size))
+                    while (data_addr != (char *)(curr_log_entry) + curr_log_entry->inode.size)
                     {
-                        // if the subdir is the current highest ancestor of our target
+                        // printf("curr_log_entry (%p) :: crl+size (%p) :: data_addr (%p) :: base (%p) :: head (%p)\n", (char *) curr_log_entry,(char *)(curr_log_entry) + curr_log_entry->inode.size, data_addr, base, head);
+                        // printf("curr_log_entry->inode_number: %d\n", curr_log_entry->inode.inode_number);
+                        // printf("curr_log_entry->deleted: %d\n", curr_log_entry->inode.deleted);
+                        // printf("curr_log_entry->mode: %d\n", curr_log_entry->inode.mode);
+                        // printf("curr_log_entry->uid: %d\n", curr_log_entry->inode.uid);
+                        // printf("curr_log_entry->gid: %d\n", curr_log_entry->inode.gid);
+                        // printf("curr_log_entry->flags: %d\n", curr_log_entry->inode.flags);
+                        // printf("curr_log_entry->size: %d\n", curr_log_entry->inode.size);
+                        // printf("curr_log_entry->atime: %d\n", curr_log_entry->inode.atime);
+                        // printf("curr_log_entry->mtime: %d\n", curr_log_entry->inode.mtime);
+                        // printf("curr_log_entry->ctime: %d\n", curr_log_entry->inode.ctime);
+                        // printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
@@ -180,7 +189,6 @@ static struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += curr_log_entry->inode.size;
     }
-
     return NULL;
 }
 
@@ -193,13 +201,17 @@ char *remove_pre_mount(const char *path)
         return NULL;
     }
 
+    if(strncmp(path, "/", strlen(path)) == 0) {
+        return strdup(path);
+    }
+
     // Find the mount point in the path
     const char *mount_point_pos = strstr(path, mount_point);
     if (mount_point_pos == NULL)
     {
         // Mount point not found, move mount point back to start of path and continue
-        // return strdup(path);
-        mount_point_pos = path;
+        return strdup(path);
+        // mount_point_pos = path;
     }
 
     // Move the pointer after the mount point
@@ -208,7 +220,6 @@ char *remove_pre_mount(const char *path)
     // Calculate the length of the remaining path
     // size_t remaining_length = last_slash - mount_point_pos;
     size_t remaining_length = path+strlen(path) - mount_point_pos;
-
 
     // Allocate memory for the remaining path
     char *remaining_path = (char *)malloc((remaining_length + 1) * sizeof(char));
@@ -227,17 +238,29 @@ char *remove_pre_mount(const char *path)
 }
 
 // Check if filename contains valid characters
-// TODO check length as well?
-int valid_name(const char *filename)
+// TODO length check as well against macro
+int valid_name(const char *entry_name)
 {
-    while (*filename != '\0')
+    // Find the last dot in the filename
+    const char *last_dot = NULL;
+    while (*entry_name != '\0')
     {
-        if (!(isalnum(*filename) || *filename == '_'))
+        if (*entry_name == '.')
+        {
+            last_dot = entry_name;
+        }
+        entry_name++;
+    }
+    
+    // If a dot is found, exclude characters after the last dot
+    while (*entry_name != '\0' && entry_name != last_dot)
+    {
+        if (!(isalnum(*last_dot) || *last_dot == '_'))
         {
             // If the character is not alphanumeric or underscore, the filename is invalid
             return 0;
         }
-        filename++;
+        last_dot++;
     }
 
     // All characters in the filename are valid
@@ -248,7 +271,6 @@ int valid_name(const char *filename)
 int can_create(const char *path)
 {
     char *last_part = get_bottom_level(path);
-
 
     // Check filename
     if (!valid_name(last_part))
@@ -275,7 +297,7 @@ int can_create(const char *path)
     char *data_addr = parent->data;
 
     // iterate over all dentry's of parent
-    while (data_addr != (char *)(parent + parent->inode.size))
+    while (data_addr != (char *)(parent) + parent->inode.size)
     {
         // check if current dentry matches desired filename
         if (strcmp(((struct wfs_dentry *)data_addr)->name, last_part) == 0)
@@ -341,7 +363,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
     new_inode.inode_number = inode_count;
     new_inode.deleted = 0;
-    new_inode.mode = mode;
+    new_inode.mode = S_IFREG;
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
@@ -384,12 +406,11 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
-
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
         log_entry_copy->inode.ctime = time(NULL);
 
@@ -416,8 +437,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     if (new_log_entry != NULL)
     {
         // point the log entry at the created inode
-        // TODO should I use memcpy?
-        // memccpy(new_log_entry, &new_inode, new_inode.size);
         new_log_entry->inode = new_inode;
         new_log_entry->inode.ctime = time(NULL);
 
@@ -443,8 +462,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
 {
     path = remove_pre_mount(path);
 
-
-    // Verify filename
+    // Verify dir name
     if (!valid_name(get_bottom_level(path)))
     {
         printf("Invalid Directory Name\n");
@@ -464,7 +482,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
 
     new_inode.inode_number = inode_count;
     new_inode.deleted = 0;
-    new_inode.mode = mode;
+    new_inode.mode = S_IFDIR;
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
@@ -512,7 +530,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
         memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy(log_entry_copy + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
         log_entry_copy->inode.ctime = time(NULL);
 
@@ -668,7 +686,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while (data_addr != (char *)(dir_log_entry + dir_log_entry->inode.size))
+    while (data_addr != (char *)(dir_log_entry) + dir_log_entry->inode.size)
     {
         struct wfs_dentry *curr_dentry = (struct wfs_dentry *)data_addr;
 
@@ -770,7 +788,7 @@ static int wfs_unlink(const char *path)
         // find the address offset of the dentry for this file
         char *data_addr = parent_log_entry->data;
         // iterate over all dentry's
-        while (data_addr != (char *)(parent_log_entry + parent_log_entry->inode.size))
+        while (data_addr != (char *)(parent_log_entry) + parent_log_entry->inode.size)
         {
             // check the inode number against the target log entry (deleted file)
             if (((struct wfs_dentry *)data_addr)->inode_number == log_entry->inode.inode_number)
@@ -784,14 +802,14 @@ static int wfs_unlink(const char *path)
         memcpy(log_entry_copy, parent_log_entry, data_addr - (char *)(parent_log_entry));
 
         // memcpy after the deleted dentry -- if this check does not hit, it means the deleted file was the last dentry of the parent log entry
-        if (data_addr != (char *)(parent_log_entry->inode.size - sizeof(struct wfs_dentry)))
+        if (data_addr != ((char *)(parent_log_entry) + parent_log_entry->inode.size - sizeof(struct wfs_dentry)))
         {
             // the start of the remaining data portion of the copy of the parent's log entry
-            char *data_start_addr = (char *)(log_entry_copy + (data_addr - (char *)(parent_log_entry)));
+            char *data_start_addr = (char *)(log_entry_copy) + (data_addr - (char *)(parent_log_entry));
             // the address of the remaining data in the original parent (after the deleted target file's dentry)
             char *parent_after_data_addr = data_addr + sizeof(struct wfs_dentry);
             // the size remaining after the child's dentry
-            uint parent_remaining_size = (char *)(parent_log_entry + parent_log_entry->inode.size) - parent_after_data_addr;
+            uint parent_remaining_size = (char *)(parent_log_entry) + parent_log_entry->inode.size - parent_after_data_addr;
 
             memcpy(data_start_addr, parent_after_data_addr, parent_remaining_size);
         }
@@ -843,7 +861,7 @@ int main(int argc, char *argv[])
     int fd;
 
     // Open file descriptor for file to init system with
-    fd = open(disk_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    fd = open(disk_path, O_RDWR, 0666);
     if (fd == -1)
     {
         perror("Error opening file");
@@ -861,7 +879,6 @@ int main(int argc, char *argv[])
 
     base = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                 fd, 0);
-
     // Check for errors in mmap
     if (base == MAP_FAILED)
     {
@@ -879,17 +896,16 @@ int main(int argc, char *argv[])
     }
 
     // Store head global
-    head = (char *)&superblock->head;
+    head = base + superblock->head;
 
     // FUSE options are passed to fuse_main, starting from argv[1]
-    int fuse_argc = argc - 2; // Adjust argc for FUSE options
-    char **fuse_argv = argv + 1;
-
-    // Disable multi-threading with -s option
-    fuse_argv[0] = "-s";
-
+    argv[argc-2] = argv[argc-1];
+    argv[argc-1] = NULL;
+    argc--;
+    
     // Call fuse_main with your FUSE operations and data
-    fuse_main(fuse_argc, fuse_argv, &my_operations, NULL);
+    fuse_main(argc, argv, &my_operations, NULL);
+
     munmap(base, file_stat.st_size);
 
     return 0;

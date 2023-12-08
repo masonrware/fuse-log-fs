@@ -1,0 +1,8 @@
+To run the tests:
+
+1. Navigate to the base directory of your project. This directory should contain the source files
+
+2. From that directory, execute the runtests executable in this directory
+  Like:  ~cs537-1/tests/P7/start.py
+
+This will create a directory named "mnt" and mount your filesystem onto it. 

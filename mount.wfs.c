@@ -329,7 +329,7 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
-    fprintf(stderr, ">>getattr: %s\n", path);
+    printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
@@ -347,8 +347,8 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
     stbuf->st_gid = log_entry->inode.gid;
     stbuf->st_atime = log_entry->inode.atime;
     stbuf->st_mtime = log_entry->inode.mtime;
-    if (log_entry->inode.mode & S_IFDIR) stbuf->st_mode = S_IFDIR;
-    else stbuf->st_mode = S_IFREG;
+    if (log_entry->inode.mode & S_IFDIR) stbuf->st_mode = S_IFDIR | 0755;
+    else stbuf->st_mode = S_IFREG | 0444;
     // stbuf->st_mode = log_entry->inode.mode;
     stbuf->st_nlink = log_entry->inode.links;
     stbuf->st_size = log_entry->inode.size;

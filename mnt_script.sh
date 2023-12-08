@@ -22,5 +22,5 @@ make
 # Create mount directory
 mkdir mnt
 
-# Mount the filesystem
-./mount.wfs -s -f disk mnt/
+# mount directory
+./mount.wfs -f -s disk mnt

@@ -171,7 +171,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
                     printf("172\n");
                     // iterate over all dentries
-                    while (data_addr != (char *)(curr_log_entry) + curr_log_entry->inode.size)
+                    while (data_addr != (char *)(curr_log_entry) + sizeof(struct wfs_inode) + curr_log_entry->inode.size)
                     {
                         printf("176\n");
                         printf("curr_log_entry (%p) :: crl+size (%p) :: data_addr (%p) :: base (%p) :: head (%p)\n", (char *) curr_log_entry,(char *)(curr_log_entry) + curr_log_entry->inode.size, data_addr, base, head);
@@ -201,7 +201,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         }
         printf("189\n");
         // we design the inode's size to be updated with size of data member of log entry struct
-        curr += curr_log_entry->inode.size;
+        curr += sizeof(struct wfs_inode) + curr_log_entry->inode.size;
         // TODO REMOVE
         // break;
     }
@@ -326,7 +326,7 @@ int can_create(const char *path)
     char *data_addr = parent->data;
 
     // iterate over all dentry's of parent
-    while (data_addr != (char *)(parent) + parent->inode.size)
+    while (data_addr != (char *)(parent) + sizeof(struct wfs_inode) + parent->inode.size)
     {
         // check if current dentry matches desired filename
         if (strcmp(((struct wfs_dentry *)data_addr)->name, last_part) == 0)
@@ -399,7 +399,8 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
-    new_inode.size = sizeof(struct wfs_inode);
+    // new_inode.size = sizeof(struct wfs_inode);
+    new_inode.size = 0;
     new_inode.atime = time(NULL);
     new_inode.mtime = time(NULL);
     new_inode.ctime = time(NULL);
@@ -431,36 +432,36 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
     // perform size bounds checking
     // current size + size of copy of parent + size of new log entry
-    if ((total_size + old_log_entry->inode.size + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
+    if ((total_size + (old_log_entry->inode.size + sizeof(struct wfs_inode)) + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
         printf("Insufficient Disk Space to Perform Operation.\n");
         return -ENOSPC;
     }
 
     // printf("mknod>>390\n");
     // Make a copy of the old log entry and add the created dentry to its data field
-    struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
+    struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(sizeof(struct wfs_inode) + old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
         // printf("mknod>>395\n");
         // copy the entire old log entry (including it's data field) to the new log entry
-        memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
+        memcpy(log_entry_copy, old_log_entry, sizeof(struct wfs_inode) + old_log_entry->inode.size);
 
         // printf("dentry name: %s\n", new_dentry->name);
         // printf("dentry inode number: %ld\n", new_dentry->inode_number);
         // printf("base (%p) :: log_entry_copy (%p) :: log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", base, (char *)(log_entry_copy), (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy((char *)(log_entry_copy) + sizeof(struct wfs_inode) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
 
         // write the log entry copy to the log
-        memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+        memcpy(head, log_entry_copy, sizeof(struct wfs_inode) + log_entry_copy->inode.size);
 
         // update total size count
-        total_size += log_entry_copy->inode.size;
+        total_size += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
 
         // update the head
-        head += log_entry_copy->inode.size;
+        head += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
     }
     else
     {
@@ -480,13 +481,13 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
-        memcpy(head, new_log_entry, new_log_entry->inode.size);
+        memcpy(head, new_log_entry, sizeof(struct wfs_inode) + new_log_entry->inode.size);
 
         // update total size count
-        total_size += new_log_entry->inode.size;
+        total_size += sizeof(struct wfs_inode) + new_log_entry->inode.size;
 
         // update the head
-        head += new_log_entry->inode.size;
+        head += sizeof(struct wfs_inode) + new_log_entry->inode.size;
     }
     else
     {
@@ -527,7 +528,8 @@ static int wfs_mkdir(const char *path, mode_t mode)
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
-    new_inode.size = sizeof(struct wfs_inode);
+    // new_inode.size = sizeof(struct wfs_inode);
+    new_inode.size = 0;
     new_inode.atime = time(NULL);
     new_inode.mtime = time(NULL);
     new_inode.ctime = time(NULL);
@@ -558,30 +560,30 @@ static int wfs_mkdir(const char *path, mode_t mode)
 
     // perform size bounds checking
     // current size + size of copy of parent + size of new log entry
-    if ((total_size + old_log_entry->inode.size + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
+    if ((total_size + (sizeof(struct wfs_inode) + old_log_entry->inode.size) + sizeof(struct wfs_dentry) + sizeof(struct wfs_log_entry)) > MAX_SIZE) {
         printf("Insufficient Disk Space to Perform Operation.\n");
         return -ENOSPC;
     }
 
     // Make a copy of the old log entry and add the created dentry to its data field
-    struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(old_log_entry->inode.size + sizeof(struct wfs_dentry));
+    struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(sizeof(struct wfs_inode) + old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
         // copy the entire old log entry (including it's data field) to the new log entry
-        memcpy(log_entry_copy, old_log_entry, old_log_entry->inode.size);
+        memcpy(log_entry_copy, old_log_entry, sizeof(struct wfs_inode) + old_log_entry->inode.size);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
-        memcpy((char *)(log_entry_copy) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
+        memcpy((char *)(log_entry_copy) + sizeof(struct wfs_inode) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
         log_entry_copy->inode.size += sizeof(struct wfs_dentry);
 
         // write the log entry copy to the log
-        memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+        memcpy(head, log_entry_copy, sizeof(struct wfs_inode) + log_entry_copy->inode.size);
 
         // update total size count
-        total_size += log_entry_copy->inode.size;
+        total_size += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
 
         // update the head
-        head += log_entry_copy->inode.size;
+        head += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
     }
     else
     {
@@ -629,7 +631,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
         return -ENOENT;
     }
 
-    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
+    int data_size = sizeof(struct wfs_inode) + f->inode.size - sizeof(struct wfs_log_entry);
 
     // Check if offset is too large
     if (offset >= data_size)
@@ -656,7 +658,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     }
 
     // end of log entry - start of data field
-    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
+    int data_size = sizeof(struct wfs_inode) + f->inode.size - sizeof(struct wfs_log_entry);
     f->inode.atime = time(NULL);
 
     // Check if write exceeds current size of file data
@@ -677,7 +679,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(sizeof(struct wfs_log_entry) + data_size);
 
     // memcpy old log into copy
-    memcpy(log_entry_copy, f, f->inode.size);
+    memcpy(log_entry_copy, f, sizeof(struct wfs_inode) + f->inode.size);
 
     // mark old log entry as deleted
     f->inode.deleted = 1;
@@ -693,13 +695,13 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
     log_entry_copy->inode.mtime = time(NULL);
 
     // add log entry to head
-    memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+    memcpy(head, log_entry_copy, sizeof(struct wfs_inode) + log_entry_copy->inode.size);
 
     // update total size count
-    total_size += log_entry_copy->inode.size;
+    total_size += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
 
     // update head
-    head += log_entry_copy->inode.size;
+    head += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
 
     return size;
 }
@@ -723,7 +725,7 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char *data_addr = dir_log_entry->data + (offset * sizeof(struct wfs_dentry));
 
     // iterate over all dentries
-    while (data_addr != (char *)(dir_log_entry) + dir_log_entry->inode.size)
+    while (data_addr != (char *)(dir_log_entry) + sizeof(struct wfs_inode) + dir_log_entry->inode.size)
     {
         struct wfs_dentry *curr_dentry = (struct wfs_dentry *)data_addr;
 
@@ -795,7 +797,7 @@ static int wfs_unlink(const char *path)
 
     // perform size bounds checking
     // current size + size of copy of parent
-    if ((total_size + parent_log_entry->inode.size - sizeof(struct wfs_dentry)) > MAX_SIZE) {
+    if ((total_size + sizeof(struct wfs_inode) + parent_log_entry->inode.size - sizeof(struct wfs_dentry)) > MAX_SIZE) {
         printf("Insufficient Disk Space to Perform Operation.\n");
         return -ENOSPC;
     }
@@ -818,13 +820,13 @@ static int wfs_unlink(const char *path)
     log_entry->inode.ctime = time(NULL);
 
     // Make a copy of the old parent log entry and remove the files dentry from the new data member (don't copy it over)
-    struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(parent_log_entry->inode.size - sizeof(struct wfs_dentry));
+    struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(sizeof(struct wfs_inode) + parent_log_entry->inode.size - sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
         // find the address offset of the dentry for this file
         char *data_addr = parent_log_entry->data;
         // iterate over all dentry's
-        while (data_addr != (char *)(parent_log_entry) + parent_log_entry->inode.size)
+        while (data_addr != (char *)(parent_log_entry) + sizeof(struct wfs_inode) + parent_log_entry->inode.size)
         {
             // check the inode number against the target log entry (deleted file)
             if (((struct wfs_dentry *)data_addr)->inode_number == log_entry->inode.inode_number)
@@ -838,14 +840,14 @@ static int wfs_unlink(const char *path)
         memcpy(log_entry_copy, parent_log_entry, data_addr - (char *)(parent_log_entry));
 
         // memcpy after the deleted dentry -- if this check does not hit, it means the deleted file was the last dentry of the parent log entry
-        if (data_addr != ((char *)(parent_log_entry) + parent_log_entry->inode.size - sizeof(struct wfs_dentry)))
+        if (data_addr != ((char *)(parent_log_entry) + sizeof(struct wfs_inode) + parent_log_entry->inode.size - sizeof(struct wfs_dentry)))
         {
             // the start of the remaining data portion of the copy of the parent's log entry
             char *data_start_addr = (char *)(log_entry_copy) + (data_addr - (char *)(parent_log_entry));
             // the address of the remaining data in the original parent (after the deleted target file's dentry)
             char *parent_after_data_addr = data_addr + sizeof(struct wfs_dentry);
             // the size remaining after the child's dentry
-            uint parent_remaining_size = (char *)(parent_log_entry) + parent_log_entry->inode.size - parent_after_data_addr;
+            uint parent_remaining_size = (char *)(parent_log_entry) + sizeof(struct wfs_inode) + parent_log_entry->inode.size - parent_after_data_addr;
 
             memcpy(data_start_addr, parent_after_data_addr, parent_remaining_size);
         }
@@ -855,13 +857,13 @@ static int wfs_unlink(const char *path)
         log_entry_copy->inode.size -= sizeof(struct wfs_dentry);
 
         // write the log entry copy to the log
-        memcpy(head, log_entry_copy, log_entry_copy->inode.size);
+        memcpy(head, log_entry_copy, sizeof(struct wfs_inode) + log_entry_copy->inode.size);
 
         // update total size count
-        total_size += log_entry_copy->inode.size;
+        total_size += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
 
         // update the head
-        head += log_entry_copy->inode.size;
+        head += sizeof(struct wfs_inode) + log_entry_copy->inode.size;
     }
     else
     {

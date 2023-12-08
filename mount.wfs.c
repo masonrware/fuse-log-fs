@@ -368,7 +368,7 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 
     new_inode.inode_number = inode_count;
     new_inode.deleted = 0;
-    new_inode.mode = mode;
+    new_inode.mode = S_IFREG;
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
@@ -496,7 +496,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
 
     new_inode.inode_number = inode_count;
     new_inode.deleted = 0;
-    new_inode.mode = mode;
+    new_inode.mode = S_IFDIR;
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;

@@ -915,7 +915,7 @@ int main(int argc, char *argv[])
 
     printf("Base: %p | Head: %p | Superblock head: %d\n", base, head, superblock->head);
     struct wfs_inode* inode = (struct wfs_inode*)(base + sizeof(struct wfs_sb));
-    printf("Inode #: %d\n", inode->inode_number);
+    printf("Inode #: %d is dir: %d\n", inode->inode_number, inode->mode & S_IFDIR);
     // FUSE options are passed to fuse_main, starting from argv[1]
     argv[argc-2] = argv[argc-1];
     argv[argc-1] = NULL;

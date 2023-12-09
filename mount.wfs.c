@@ -636,7 +636,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
     // Check if offset is too large
     // if (offset >= data_size)
     //     return 0;
-    printf("Data: %s | Data size: %d\n")
+    // printf("Data: %s | Data size: %d\n")
 
     if (offset < data_size){
         if (offset + size > data_size){

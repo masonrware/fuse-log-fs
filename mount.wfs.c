@@ -130,6 +130,29 @@ char *get_bottom_level(const char *path)
     return last_part;
 }
 
+struct wfs_log_entry *find_most_recent(int inode_number) {
+    char *curr = base;
+
+    // iterate past the superblock
+    curr += sizeof(struct wfs_sb);
+
+    char *most_recent_addr = curr;
+    int most_recent_inode_number = -1;
+
+    while (curr != head)
+    {
+        struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
+        if(most_recent_inode_number < 0) {
+            most_recent_inode_number = curr_log_entry->inode.inode_number;
+        }
+        if(curr_log_entry->inode.inode_number == most_recent_inode_number) {
+            most_recent_addr == (char *)curr_log_entry;
+        }
+    }
+
+    return (struct wfs_log_entry *)most_recent_addr;
+}
+
 // Get the log entry of the bottom-level (right most) extension of a path recursively
 struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 {
@@ -147,22 +170,8 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1)
         {
-            printf("150\n");
-			if (curr_log_entry->inode.inode_number == 1) {
-
-				printf("curr_log_entry->inode_number: %d\n", curr_log_entry->inode.inode_number);
-                        printf("curr_log_entry->deleted: %d\n", curr_log_entry->inode.deleted);
-                        printf("curr_log_entry->mode: %d\n", curr_log_entry->inode.mode);
-                        printf("curr_log_entry->uid: %d\n", curr_log_entry->inode.uid);
-                        printf("curr_log_entry->gid: %d\n", curr_log_entry->inode.gid);
-                        printf("curr_log_entry->flags: %d\n", curr_log_entry->inode.flags);
-                        printf("curr_log_entry->size: %d\n", curr_log_entry->inode.size);
-                        printf("curr_log_entry->atime: %d\n", curr_log_entry->inode.atime);
-                        printf("curr_log_entry->mtime: %d\n", curr_log_entry->inode.mtime);
-                        printf("curr_log_entry->ctime: %d\n", curr_log_entry->inode.ctime);
-                        printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
-				printf(">>>%s\n", curr_log_entry->data);
-			}
+            curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
+            
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {

@@ -633,18 +633,25 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 
     int data_size = f->inode.size;
 
+    if (offset >= data_size) return 0;
+    else if (offset + size > data_size) {
+        size = data_size - offset;
+    }
+
+    memcpy(buf, f->data + offset, size);
+
     // Check if offset is too large
     // if (offset >= data_size)
     //     return 0;
     // printf("Data: %s | Data size: %d\n")
 
-    if (offset < data_size){
-        if (offset + size > data_size){
-            size = data_size - offset;
-        }
-        memcpy(buf, (char*)f->data + offset, size);
-    }
-    else size = 0;
+    // if (offset < data_size){
+    //     if (offset + size > data_size){
+    //         size = data_size - offset;
+    //     }
+    //     memcpy(buf, (char*)f->data + offset, size);
+    // }
+    // else size = 0;
 
     // Read file data into buffer
     // memcpy(buf, f->data + offset, size);

@@ -607,7 +607,7 @@ static int wfs_mkdir(const char *path, mode_t mode)
         total_size += new_log_entry->inode.size;
 
         // update the head
-        head += new_log_entry->inode.size;
+        head += sizeof(struct wfs_inode) + new_log_entry->inode.size;
     }
     else
     {

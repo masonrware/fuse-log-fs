@@ -177,7 +177,6 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                 if (path == NULL || strlen(path) == 1 || strlen(path) == 0)
                 {
                     printf("158\n");
-                    curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
                     return curr_log_entry;
                 }
                 else
@@ -192,7 +191,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
 
                     char *data_addr = curr_log_entry->data;
-                    
+
                     printf("172\n");
                     // iterate over all dentries
                     while (data_addr != ((char *)(curr_log_entry) + sizeof(struct wfs_inode) + curr_log_entry->inode.size))

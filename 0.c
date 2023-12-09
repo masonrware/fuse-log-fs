@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-//#include "common/test.h"
+#include "common/test.h"
 
 int main() {
    
@@ -25,7 +25,7 @@ int main() {
         if (fd == -1) {
           printf("Unable to open file: %s", paths[i]);
           perror("open");
-          return -1;
+          return FAIL;
         }
 
         char buffer[7] = {0};
@@ -36,10 +36,10 @@ int main() {
         if (bytesRead != strlen(content) || strcmp(content, buffer) !=0 ) {
             close(fd);
             printf("Wrong content for file %s: file contains %s\n", paths[i], buffer);
-            return -1;
+            return FAIL;
         }
         close(fd);        
     }
 
-    return 0;
+    return PASS;
 }

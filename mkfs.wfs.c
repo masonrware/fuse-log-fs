@@ -56,7 +56,8 @@ void initialize_filesystem(const char *disk_path) {
     root_inode.uid = getuid();        // Set to the user id of the process
     root_inode.gid = getgid();        // Set to the group id of the process
     root_inode.flags = 0;             // You can set flags based on your requirements
-    root_inode.size = sizeof(struct wfs_inode);           // Set to an appropriate size for a directory (e.g., 4 KB)
+    // root_inode.size = sizeof(struct wfs_inode);           // Set to an appropriate size for a directory (e.g., 4 KB)
+    root_inode.size = 0;
     root_inode.atime = time(NULL);    // Set to the current time
     root_inode.mtime = time(NULL);    // Set to the current time
     root_inode.ctime = time(NULL);    // Set to the current time
@@ -66,12 +67,12 @@ void initialize_filesystem(const char *disk_path) {
     root_log_entry->inode = root_inode;
 
     // Place the root log entry at the head address
-    memcpy((char *)(base + superblock->head), root_log_entry, root_log_entry->inode.size);
+    memcpy((char *)(base + superblock->head), root_log_entry, sizeof(struct wfs_inode) + root_log_entry->inode.size);
     
     // Update the head to be after the added root log entry
-    superblock->head += root_log_entry->inode.size;
+    superblock->head += sizeof(struct wfs_inode) + root_log_entry->inode.size;
     // update total size
-    total_size += root_log_entry->inode.size + sizeof(struct wfs_sb);
+    total_size += sizeof(struct wfs_inode) + root_log_entry->inode.size + sizeof(struct wfs_sb);
 
     // printf("%p %p\n", base, superblock->head);
  

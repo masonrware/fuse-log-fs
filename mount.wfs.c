@@ -148,6 +148,8 @@ struct wfs_log_entry *find_most_recent(int inode_number) {
         if(curr_log_entry->inode.inode_number == most_recent_inode_number) {
             most_recent_addr == (char *)curr_log_entry;
         }
+
+        curr += (sizeof(struct wfs_inode) + curr_log_entry->inode.size);
     }
 
     return (struct wfs_log_entry *)most_recent_addr;
@@ -171,7 +173,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         if (curr_log_entry->inode.deleted != 1)
         {
             curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
-            
+
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {

@@ -148,6 +148,21 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         if (curr_log_entry->inode.deleted != 1)
         {
             printf("150\n");
+			if (curr_log_entry->inode.inode_number == 1) {
+
+				printf("curr_log_entry->inode_number: %d\n", curr_log_entry->inode.inode_number);
+                        printf("curr_log_entry->deleted: %d\n", curr_log_entry->inode.deleted);
+                        printf("curr_log_entry->mode: %d\n", curr_log_entry->inode.mode);
+                        printf("curr_log_entry->uid: %d\n", curr_log_entry->inode.uid);
+                        printf("curr_log_entry->gid: %d\n", curr_log_entry->inode.gid);
+                        printf("curr_log_entry->flags: %d\n", curr_log_entry->inode.flags);
+                        printf("curr_log_entry->size: %d\n", curr_log_entry->inode.size);
+                        printf("curr_log_entry->atime: %d\n", curr_log_entry->inode.atime);
+                        printf("curr_log_entry->mtime: %d\n", curr_log_entry->inode.mtime);
+                        printf("curr_log_entry->ctime: %d\n", curr_log_entry->inode.ctime);
+                        printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
+				printf(">>>%s\n", curr_log_entry->data);
+			}
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
@@ -186,6 +201,9 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                         printf("curr_log_entry->mtime: %d\n", curr_log_entry->inode.mtime);
                         printf("curr_log_entry->ctime: %d\n", curr_log_entry->inode.ctime);
                         printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
+
+						printf("current dentry: %s\n", ((struct wfs_dentry *)data_addr)->name);
+						printf("current dentry inode num: %ld\n",  ((struct wfs_dentry *)data_addr)->inode_number);
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
                             printf("179\n");
@@ -626,6 +644,8 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
     // Grab log entry for desired file
     struct wfs_log_entry *f = get_log_entry(path, 0);
 
+    printf("%s\n", f->data);
+
     if(f == NULL) {
         printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
         return -ENOENT;
@@ -636,9 +656,16 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
     // Check if offset is too large
     if (offset >= f->inode.size)
         return 0;
+   
+    // Calculate the remaining bytes to read
+    size_t remaining = f->inode.size - offset;
+
+    // Determine the actual number of bytes to read (minimum of size and remaining)
+    size_t to_read = (size < remaining) ? size : remaining;
+
 
     // Read file data into buffer
-    memcpy(buf, (char *)f + sizeof(struct wfs_inode) + offset, size);
+    memcpy(buf, f->data + offset, to_read);
     f->inode.atime = time(NULL);
 
     return size;

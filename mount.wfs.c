@@ -160,29 +160,23 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
     // iterate past the superblock
     curr += sizeof(struct wfs_sb);
 
-    printf("141\n");
     while (curr != head)
     {
-        printf("144\n");
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
-        printf("146\n");
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1)
         {
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
-                printf("154\n");
                 // base case -- either "" or "/"
                 if (path == NULL || strlen(path) == 1 || strlen(path) == 0)
                 {
-                    printf("158\n");
                     curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
                     return curr_log_entry;
                 }
                 else
                 {
-                    printf("163\n");
                     char path_copy[100];
                     strcpy(path_copy, path);
 
@@ -193,76 +187,46 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
                     char *data_addr = curr_log_entry->data;
 
-                    printf("172\n");
                     // iterate over all dentries
                     while (data_addr != ((char *)(curr_log_entry) + sizeof(struct wfs_inode) + curr_log_entry->inode.size))
                     {
-                        printf("176\n");
-                        printf("curr_log_entry (%p) :: crl+size (%p) :: data_addr (%p) :: base (%p) :: head (%p)\n", (char *) curr_log_entry,(char *)(curr_log_entry) + curr_log_entry->inode.size, data_addr, base, head);
-                        printf("curr_log_entry->inode_number: %d\n", curr_log_entry->inode.inode_number);
-                        printf("curr_log_entry->deleted: %d\n", curr_log_entry->inode.deleted);
-                        printf("curr_log_entry->mode: %d\n", curr_log_entry->inode.mode);
-                        printf("curr_log_entry->uid: %d\n", curr_log_entry->inode.uid);
-                        printf("curr_log_entry->gid: %d\n", curr_log_entry->inode.gid);
-                        printf("curr_log_entry->flags: %d\n", curr_log_entry->inode.flags);
-                        printf("curr_log_entry->size: %d\n", curr_log_entry->inode.size);
-                        printf("curr_log_entry->atime: %d\n", curr_log_entry->inode.atime);
-                        printf("curr_log_entry->mtime: %d\n", curr_log_entry->inode.mtime);
-                        printf("curr_log_entry->ctime: %d\n", curr_log_entry->inode.ctime);
-                        printf("curr_log_entry->links: %d\n", curr_log_entry->inode.links);
-
-						printf("current dentry: %s\n", ((struct wfs_dentry *)data_addr)->name);
-						printf("current dentry inode num: %ld\n",  ((struct wfs_dentry *)data_addr)->inode_number);
                         if (strcmp(((struct wfs_dentry *)data_addr)->name, ancestor) == 0)
                         {
-                            printf("179\n");
                             return get_log_entry(snip_top_level(path), ((struct wfs_dentry *)data_addr)->inode_number);
                         }
-                        printf("182\n");
                         data_addr += sizeof(struct wfs_dentry);
-                        // TODO REMOVE
-                        // break;
                     }
                 }
             }
         }
-        printf("189\n");
         // we design the inode's size to be updated with size of data member of log entry struct
         curr += (sizeof(struct wfs_inode) + curr_log_entry->inode.size);
-        // TODO REMOVE
-        // break;
     }
-    printf("193\n");
     return NULL;
 }
 
 // Remove any pre-mount portion (including the mount point) of a path
 char *remove_pre_mount(const char *path)
 {
-    printf(">>remove pre mount: %s\n", path);
     if (path == NULL || mount_point == NULL || strlen(path) == 0 || strlen(mount_point) == 0)
     {
         // Handle invalid input
         return NULL;
     }
 
-    printf("rmmount>>207\n");
     if(strncmp(path, "/", strlen(path)) == 0) {
         return strdup(path);
     }
 
-    printf("rmmount>>212\n");
     // Find the mount point in the path
     const char *mount_point_pos = strstr(path, mount_point);
     if (mount_point_pos == NULL)
     {
-        printf("rmmount>>217\n");
         // Mount point not found, move mount point back to start of path and continue
         return strdup(path);
         // mount_point_pos = path;
     }
 
-    printf("rmmount>>222\n");
     // Move the pointer after the mount point
     mount_point_pos += strlen(mount_point);
 
@@ -270,7 +234,6 @@ char *remove_pre_mount(const char *path)
     // size_t remaining_length = last_slash - mount_point_pos;
     size_t remaining_length = path+strlen(path) - mount_point_pos;
 
-    printf("rmmount>>231");
     // Allocate memory for the remaining path
     char *remaining_path = (char *)malloc((remaining_length + 1) * sizeof(char));
     if (remaining_path == NULL)
@@ -280,21 +243,15 @@ char *remove_pre_mount(const char *path)
         exit(EXIT_FAILURE);
     }
 
-    printf("rmmount>>241\n");
     // Copy the remaining path into the new string
     strncpy(remaining_path, mount_point_pos, remaining_length);
     remaining_path[remaining_length] = '\0';
 
-    printf("rmmount>>246\n");
     return remaining_path;
 }
 
-// Check if filename contains valid characters
-// TODO length check as well against macro
 int valid_name(const char *entry_name)
 {
-    printf(">>valid_name: %s\n", entry_name);
-
     // Find the last dot in the filename
     const char *last_dot = NULL;
     while (*entry_name != '\0')
@@ -324,7 +281,6 @@ int valid_name(const char *entry_name)
 // Check if file/subdir can be created -- validate name and (local) uniqueness
 int can_create(const char *path)
 {
-    printf(">>can create: %s\n", path);
     char *last_part = get_bottom_level(path);
 
     // Check filename
@@ -334,8 +290,6 @@ int can_create(const char *path)
         return 0;
     }
     
-    // TODO is the below necessary?
-    // Check return val from get_last_part
     if (strcmp(last_part, "") == 0)
     {
         printf("Empty filename\n");
@@ -370,7 +324,6 @@ int can_create(const char *path)
 // Function to get attributes of a file or directory
 static int wfs_getattr(const char *path, struct stat *stbuf)
 {
-    printf(">>getattr: %s\n", path);
     // clean path (remove pre mount + mount)
     path = remove_pre_mount(path);
 
@@ -398,7 +351,6 @@ static int wfs_getattr(const char *path, struct stat *stbuf)
 // Function to create a regular file
 static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-    printf(">>mknod: %s\n", path);
     path = remove_pre_mount(path);
 
     // Verify filename
@@ -415,7 +367,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         return -EEXIST;
     }
 
-    // printf("mknod>>342\n");
     // Create a new inode for the file
     struct wfs_inode new_inode;
     inode_count += 1;
@@ -426,14 +377,12 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
-    // new_inode.size = sizeof(struct wfs_inode);
     new_inode.size = 0;
     new_inode.atime = time(NULL);
     new_inode.mtime = time(NULL);
     new_inode.ctime = time(NULL);
     new_inode.links = 1;
 
-    // printf("mknod>>359\n");
     // Create a new dentry for the file
     struct wfs_dentry *new_dentry = (struct wfs_dentry *)malloc(sizeof(struct wfs_dentry));
     if (new_dentry != NULL)
@@ -448,7 +397,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         // Handle allocation failure
     }
 
-    // printf("mknod>>374\n");
     // Get parent directory log entry
     struct wfs_log_entry *old_log_entry = get_log_entry(snip_bottom_level(path), 0);
 
@@ -464,18 +412,12 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
         return -ENOSPC;
     }
 
-    // printf("mknod>>390\n");
     // Make a copy of the old log entry and add the created dentry to its data field
     struct wfs_log_entry *log_entry_copy = (struct wfs_log_entry *)malloc(sizeof(struct wfs_inode) + old_log_entry->inode.size + sizeof(struct wfs_dentry));
     if (log_entry_copy != NULL)
     {
-        // printf("mknod>>395\n");
         // copy the entire old log entry (including it's data field) to the new log entry
         memcpy(log_entry_copy, old_log_entry, sizeof(struct wfs_inode) + old_log_entry->inode.size);
-
-        // printf("dentry name: %s\n", new_dentry->name);
-        // printf("dentry inode number: %ld\n", new_dentry->inode_number);
-        // printf("base (%p) :: log_entry_copy (%p) :: log_entry_copy + size (%p) :: size of dentry (%ld) :: head (%p)\n", base, (char *)(log_entry_copy), (char *)(log_entry_copy) + log_entry_copy->inode.size, sizeof((char *)new_dentry), head);
 
         // add the dentry to log_entry_copy's data and update new log entry's size
         memcpy((char *)(log_entry_copy) + sizeof(struct wfs_inode) + log_entry_copy->inode.size, new_dentry, sizeof(struct wfs_dentry));
@@ -503,8 +445,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
     if (new_log_entry != NULL)
     {
         // point the log entry at the created inode
-        // TODO should I use memcpy?
-        // memccpy(new_log_entry, &new_inode, new_inode.size);
         new_log_entry->inode = new_inode;
 
         // add log entry to the log
@@ -527,7 +467,6 @@ static int wfs_mknod(const char *path, mode_t mode, dev_t rdev)
 // Function to create a directory
 static int wfs_mkdir(const char *path, mode_t mode)
 {
-    printf(">>mkdir: %s\n", path);
     path = remove_pre_mount(path);
 
 
@@ -555,7 +494,6 @@ static int wfs_mkdir(const char *path, mode_t mode)
     new_inode.uid = getuid();
     new_inode.gid = getgid();
     new_inode.flags = 0;
-    // new_inode.size = sizeof(struct wfs_inode);
     new_inode.size = 0;
     new_inode.atime = time(NULL);
     new_inode.mtime = time(NULL);
@@ -647,20 +585,15 @@ static int wfs_mkdir(const char *path, mode_t mode)
 // Function to read data from a file
 static int wfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-    printf(">>read: %s\n", path);
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
     struct wfs_log_entry *f = get_log_entry(path, 0);
 
-    printf("%s\n", f->data);
-
     if(f == NULL) {
         printf("Log Entry Associated With Path Does Not Exist.\nPath: %s\n", path);
         return -ENOENT;
     }
-
-    // int data_size = (sizeof(struct wfs_inode) + f->inode.size - sizeof(struct wfs_log_entry));
 
     // Check if offset is too large
     if (offset >= f->inode.size)
@@ -672,7 +605,6 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
     // Determine the actual number of bytes to read (minimum of size and remaining)
     size_t to_read = (size < remaining) ? size : remaining;
 
-
     // Read file data into buffer
     memcpy(buf, f->data + offset, to_read);
     f->inode.atime = time(NULL);
@@ -683,7 +615,6 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 // Function to write data to a file
 static int wfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-    printf(">>write: %s\n", path);
     path = remove_pre_mount(path);
 
     // Grab log entry for desired file
@@ -746,7 +677,6 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
-    printf(">>readdir: %s\n", path);
     path = remove_pre_mount(path);
 
     struct wfs_log_entry *dir_log_entry = get_log_entry(path, 0);
@@ -819,7 +749,6 @@ static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 // Function to unlink (delete) a file
 static int wfs_unlink(const char *path)
 {
-    printf(">>unlink: %s\n", path);
     path = remove_pre_mount(path);
 
     // get parent log entry

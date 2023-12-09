@@ -640,7 +640,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
         size = data_size - offset;
     }
 
-    printf("Final size: %d\n", size);
+    printf("Final size: %ld\n", size);
 
     memcpy(buf, f->data + offset, size);
 

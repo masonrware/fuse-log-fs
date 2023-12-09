@@ -638,7 +638,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
         return 0;
 
     // Read file data into buffer
-    memcpy(buf, f->data + offset, size);
+    memcpy(buf, f->data, size);
     f->inode.atime = time(NULL);
 
     return size;

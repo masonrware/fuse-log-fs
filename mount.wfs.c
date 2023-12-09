@@ -631,7 +631,7 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
         return -ENOENT;
     }
 
-    int data_size = f->inode.size - sizeof(struct wfs_log_entry);
+    int data_size = f->inode.size;
 
     // Check if offset is too large
     // if (offset >= data_size)

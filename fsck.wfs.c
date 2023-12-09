@@ -1,5 +1,5 @@
 #define FUSE_USE_VERSION 30
-#include <fuse.h>
+// #include <fuse.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +41,7 @@ int clean_log() {
                 free_start = (char *)curr_log_entry;
                 set_free_start = 1;
             } 
-            curr_log_entry = (char *)(curr_log_entry) + curr_log_entry->inode.size;
+            // curr_log_entry = (char *)(curr_log_entry) + curr_log_entry->inode.size;
         } else {
             char * old_alloc_start = (char *)curr_log_entry;
             memcpy(free_start, curr_log_entry, curr_log_entry->inode.size);

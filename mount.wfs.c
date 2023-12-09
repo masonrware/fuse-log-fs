@@ -177,6 +177,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                 if (path == NULL || strlen(path) == 1 || strlen(path) == 0)
                 {
                     printf("158\n");
+                    curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
                     return curr_log_entry;
                 }
                 else
@@ -188,7 +189,7 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
                     // Use strtok to get the first token
                     char *ancestor = strtok(path_copy, "/");
 
-                    curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
+                    // curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
 
                     char *data_addr = curr_log_entry->data;
 

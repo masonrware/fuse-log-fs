@@ -137,15 +137,12 @@ struct wfs_log_entry *find_most_recent(int inode_number) {
     curr += sizeof(struct wfs_sb);
 
     char *most_recent_addr = curr;
-    int most_recent_inode_number = -1;
 
     while (curr != head)
     {
         struct wfs_log_entry *curr_log_entry = (struct wfs_log_entry *)curr;
-        if(most_recent_inode_number < 0) {
-            most_recent_inode_number = curr_log_entry->inode.inode_number;
-        }
-        if(curr_log_entry->inode.inode_number == most_recent_inode_number) {
+
+        if(curr_log_entry->inode.inode_number == inode_number) {
             most_recent_addr = (char *)curr_log_entry;
         }
 

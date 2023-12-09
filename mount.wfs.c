@@ -169,8 +169,6 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
         // if the thing is not deleted
         if (curr_log_entry->inode.deleted != 1)
         {
-            curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
-
             // we found the log entry of the inode we need
             if (curr_log_entry->inode.inode_number == inode_number)
             {
@@ -192,6 +190,8 @@ struct wfs_log_entry *get_log_entry(const char *path, int inode_number)
 
                     char *data_addr = curr_log_entry->data;
 
+                    curr_log_entry = find_most_recent(curr_log_entry->inode.inode_number);
+                    
                     printf("172\n");
                     // iterate over all dentries
                     while (data_addr != ((char *)(curr_log_entry) + sizeof(struct wfs_inode) + curr_log_entry->inode.size))

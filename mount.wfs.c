@@ -633,10 +633,14 @@ static int wfs_read(const char *path, char *buf, size_t size, off_t offset, stru
 
     int data_size = f->inode.size;
 
+    printf("Data: %s | Data size: %d | Offset: %d | Size %d\n", f->data, data_size, (int)offset, (int)size);
+
     if (offset >= data_size) return 0;
     else if (offset + size > data_size) {
         size = data_size - offset;
     }
+
+    printf("Final size: %d\n", size);
 
     memcpy(buf, f->data + offset, size);
 

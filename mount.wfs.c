@@ -709,7 +709,7 @@ static int wfs_write(const char *path, const char *buf, size_t size, off_t offse
 // Function to read directory entries
 static int wfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
-    printf(">>readdir: %s\n", path);
+    printf(">>readdir: %s\nOffset: %d\n", path, (int)offset);
     path = remove_pre_mount(path);
 
     struct wfs_log_entry *dir_log_entry = get_log_entry(path, 0);

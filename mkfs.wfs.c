@@ -67,10 +67,10 @@ void initialize_filesystem(const char *disk_path) {
     root_log_entry->inode = root_inode;
 
     // Place the root log entry at the head address
-    memcpy((char *)(base + superblock->head), root_log_entry, root_log_entry->inode.size);
+    memcpy((char *)(base + superblock->head), root_log_entry, sizeof(struct wfs_inode) + root_log_entry->inode.size);
     
     // Update the head to be after the added root log entry
-    superblock->head += root_log_entry->inode.size;
+    superblock->head += sizeof(struct wfs_inode) + root_log_entry->inode.size;
     // update total size
     total_size += sizeof(struct wfs_inode) + root_log_entry->inode.size + sizeof(struct wfs_sb);
 
